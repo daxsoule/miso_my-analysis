@@ -36,7 +36,7 @@ This project studies temperature variability at multiple hydrothermal vents in t
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/daxsoule/miso_my-analysis.git
 cd miso_my-analysis
 
 # Install dependencies
