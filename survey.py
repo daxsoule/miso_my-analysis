@@ -353,7 +353,7 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
         "April 6, 2011 Axial Seamount eruption. Y-axis: temperature (°C). Both vents maintained "
         "stable temperatures (~310–320°C) for 7 months pre-eruption. Diva dropped ~70°C immediately "
         "post-eruption with partial recovery; Casper remained stable. Drops to ~150°C at end = "
-        "instrument recovery. TODO: Add deformation data for this period."
+        "instrument recovery."
     )
     add_figure_caption(fig, caption, fontsize=24)
 
@@ -474,9 +474,9 @@ def fig_hightemp_comparison(records, summary, fig_path):
     high_recs = [r for r, s in zip(records, summary.itertuples())
                  if s.Classification == "High-temp"]
 
-    # Create figure with space for caption
-    fig = plt.figure(figsize=(8, 6), dpi=300)
-    ax = fig.add_axes([0.1, 0.35, 0.85, 0.55])
+    # Create figure with space for caption and legend outside
+    fig = plt.figure(figsize=(10, 6), dpi=300)
+    ax = fig.add_axes([0.08, 0.35, 0.65, 0.55])  # Leave room on right for legend
 
     for rec in high_recs:
         deployed = rec[rec["deployed"]]
@@ -490,7 +490,7 @@ def fig_hightemp_comparison(records, summary, fig_path):
     ax.set_xlabel("Date")
     ax.set_ylabel("Temperature (°C)")
     ax.set_title("High-Temperature Vents — Daily Mean Comparison (2022–2025)")
-    ax.legend(loc="upper right", fontsize=8, frameon=True)
+    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=8, frameon=True)
     ax.grid(True, alpha=0.3)
 
     # Deployment change annotation
@@ -627,10 +627,9 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     if xmin <= deploy_change <= xmax:
         ax1.axvline(deploy_change, color="#666666", linestyle=":", linewidth=1, alpha=0.7)
 
-    # Legend inside bottom panel
-    bottom_ax = ax3 if tmpsf is not None else ax1
-    bottom_ax.legend(all_lines, all_labels,
-                     loc="lower right", ncol=2, fontsize=7, frameon=True, framealpha=0.9)
+    # Legend in main temperature panel (top), not TMPSF panel
+    ax1.legend(all_lines, all_labels,
+               loc="lower right", ncol=2, fontsize=7, frameon=True, framealpha=0.9)
 
     ax1.set_title("Hydrothermal Vent Temperatures and Volcanic Deformation\nAxial Seamount (2022–2025)",
                   fontsize=13, fontweight="bold")
