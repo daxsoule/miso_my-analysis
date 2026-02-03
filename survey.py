@@ -36,6 +36,16 @@ SETTLING_HOURS = 24
 MAD_THRESHOLD = 5.0
 MAD_WINDOW_HOURS = 24
 
+# --- Poster figure styling (optimized for viewing at 3-6 feet) ---
+POSTER_TITLE_SIZE = 16
+POSTER_LABEL_SIZE = 14      # axis labels
+POSTER_TICK_SIZE = 12       # tick labels
+POSTER_LEGEND_SIZE = 11
+POSTER_ANNOT_SIZE = 11      # annotations
+POSTER_PANEL_LABEL_SIZE = 18  # (a), (b) labels
+POSTER_LINE_WIDTH = 2.0     # main data lines
+POSTER_ANNOT_LINE_WIDTH = 2.0  # vertical annotation lines
+
 # --- Instrument registry ---
 # Each entry: (file_path, vent_name, field, deployment, format, temp_col, date_col)
 INSTRUMENTS = [
@@ -330,26 +340,26 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
         color = VENT_COLORS.get(vent, "#333333")
         label = f"{vent}"
         daily = deployed["temperature"].resample("D").mean()
-        ax.plot(daily.index, daily.values, color=color, linewidth=1.2, alpha=0.85, label=label)
+        ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
 
-    ax.set_xlabel("Date", fontsize=11)
-    ax.set_ylabel("Temperature (°C)", fontsize=11)
-    ax.set_title("Vent Temperatures Around the April 2011 Eruption\nAxial Seamount", fontsize=12, fontweight="bold")
+    ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE)
+    ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE)
+    ax.set_title("Vent Temperatures Around the April 2011 Eruption\nAxial Seamount", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax.grid(True, alpha=0.3)
-    ax.tick_params(labelsize=9)
+    ax.tick_params(labelsize=POSTER_TICK_SIZE)
 
     # Tighten y-axis to focus on eruption response (230-330°C)
     ax.set_ylim(230, 330)
 
     # Legend in upper left (away from eruption signal)
-    ax.legend(loc="upper left", fontsize=9, frameon=True, framealpha=0.9)
+    ax.legend(loc="upper left", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
 
     # Eruption annotation
     if eruption_date:
-        ax.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=1.5, alpha=0.8)
+        ax.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.8)
         ax.annotate("April 6, 2011\neruption", xy=(eruption_date, 328),
                     xytext=(5, -5), textcoords="offset points",
-                    fontsize=9, color="#CC0000", va="top", fontweight="bold")
+                    fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="top", fontweight="bold")
 
     # Figure caption (20pt font for poster)
     caption = (
@@ -460,22 +470,22 @@ def fig_survey_overview(records, fig_path):
         label = f"{vent} ({rec.attrs['field']}, {dep})"
 
         daily = deployed["temperature"].resample("D").mean()
-        ax.plot(daily.index, daily.values, color=color, linewidth=0.8)
-        ax.set_ylabel("°C", fontsize=9)
-        ax.set_title(label, fontsize=10, fontweight="bold", loc="left")
+        ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH)
+        ax.set_ylabel("°C", fontsize=POSTER_LABEL_SIZE)
+        ax.set_title(label, fontsize=POSTER_LABEL_SIZE, fontweight="bold", loc="left")
         ax.grid(True, alpha=0.3)
-        ax.tick_params(labelsize=8)
+        ax.tick_params(labelsize=POSTER_TICK_SIZE)
         ax.set_xlim(xmin, xmax)
 
-    axes[-1].set_xlabel("Date")
+    axes[-1].set_xlabel("Date", fontsize=POSTER_LABEL_SIZE)
 
     # Deployment change annotation on all panels
     deploy_change = pd.Timestamp("2024-06-26")
     for ax in axes:
-        ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=0.8, alpha=0.7)
+        ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
 
     fig.suptitle("MISO Temperature Survey — All Recent Instruments (2022–2025)",
-                 fontsize=13, fontweight="bold")
+                 fontsize=POSTER_TITLE_SIZE, fontweight="bold")
 
     # Figure caption
     caption = (
@@ -508,20 +518,21 @@ def fig_hightemp_comparison(records, summary, fig_path):
         color = VENT_COLORS.get(vent, "#333333")
         label = f"{vent} ({rec.attrs['field']}, {dep})"
         daily = deployed["temperature"].resample("D").mean()
-        ax.plot(daily.index, daily.values, color=color, linewidth=1, alpha=0.85, label=label)
+        ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
 
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Temperature (°C)")
-    ax.set_title("High-Temperature Vents — Daily Mean Comparison (2022–2025)")
-    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=8, frameon=True)
+    ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE)
+    ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE)
+    ax.set_title("High-Temperature Vents — Daily Mean Comparison (2022–2025)", fontsize=POSTER_TITLE_SIZE)
+    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=POSTER_LEGEND_SIZE, frameon=True)
     ax.grid(True, alpha=0.3)
+    ax.tick_params(labelsize=POSTER_TICK_SIZE)
 
     # Deployment change annotation
     deploy_change = pd.Timestamp("2024-06-26")
-    ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=1, alpha=0.7)
+    ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
     ax.annotate("Deployment\nchange", xy=(deploy_change, ax.get_ylim()[1]),
                 xytext=(5, -5), textcoords="offset points",
-                fontsize=8, color="#666666", va="top")
+                fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top")
 
     # Figure caption (24pt font for poster)
     caption = (
@@ -547,11 +558,11 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     # Same base color for same vent, solid=2022-2024, dashed=2024-2025
     # Uses colorblind-safe Okabe-Ito palette
     POSTER_STYLE = {
-        ("Inferno", "2022-2024"):      {"color": "#D55E00", "ls": "-",  "lw": 1.4, "label": "Inferno (ASHES, 2022–24)"},
-        ("Inferno", "2024-2025"):      {"color": "#D55E00", "ls": "--", "lw": 1.4, "label": "Inferno (ASHES, 2024–25)"},
-        ("Hell", "2022-2024"):         {"color": "#E69F00", "ls": "-",  "lw": 1.4, "label": "Hell (ID, 2022–24)"},
-        ("El Guapo", "2022-2024"):     {"color": "#0072B2", "ls": "-",  "lw": 1.4, "label": "El Guapo (ID, 2022–24)"},
-        ("El Guapo (Top)", "2024-2025"): {"color": "#56B4E9", "ls": "--", "lw": 1.4, "label": "El Guapo Top (ID, 2024–25)"},
+        ("Inferno", "2022-2024"):      {"color": "#D55E00", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "Inferno (ASHES, 2022–24)"},
+        ("Inferno", "2024-2025"):      {"color": "#D55E00", "ls": "--", "lw": POSTER_LINE_WIDTH, "label": "Inferno (ASHES, 2024–25)"},
+        ("Hell", "2022-2024"):         {"color": "#E69F00", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "Hell (ID, 2022–24)"},
+        ("El Guapo", "2022-2024"):     {"color": "#0072B2", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "El Guapo (ID, 2022–24)"},
+        ("El Guapo (Top)", "2024-2025"): {"color": "#56B4E9", "ls": "--", "lw": POSTER_LINE_WIDTH, "label": "El Guapo Top (ID, 2024–25)"},
     }
 
     # Two panels if TMPSF available, otherwise single (with space for caption)
@@ -575,8 +586,8 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
                  color=style["color"], linestyle=style["ls"],
                  linewidth=style["lw"], alpha=0.85, label=style["label"])
 
-    ax1.set_ylabel("Vent Temperature (°C)", fontsize=11)
-    ax1.tick_params(labelsize=9)
+    ax1.set_ylabel("Vent Temperature (°C)", fontsize=POSTER_LABEL_SIZE)
+    ax1.tick_params(labelsize=POSTER_TICK_SIZE)
 
     # Constrain x-axis to temperature data range (with small padding)
     all_starts = []
@@ -596,10 +607,10 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         ax2 = ax1.twinx()
         bpr_cm = bpr["differential_m"] * 100
         ax2.plot(bpr.index, bpr_cm,
-                 color="#0868AC", alpha=0.5, linewidth=1.5, linestyle="--",
+                 color="#0868AC", alpha=0.5, linewidth=POSTER_LINE_WIDTH + 0.5, linestyle="--",
                  label="Differential uplift")
-        ax2.set_ylabel("Differential uplift (cm)", color="#0868AC", fontsize=11)
-        ax2.tick_params(axis="y", labelcolor="#0868AC", labelsize=9)
+        ax2.set_ylabel("Differential uplift (cm)", color="#0868AC", fontsize=POSTER_LABEL_SIZE)
+        ax2.tick_params(axis="y", labelcolor="#0868AC", labelsize=POSTER_TICK_SIZE)
 
         # Constrain y-axis to visible BPR range (within the x-axis window)
         bpr_visible = bpr_cm.loc[xmin:xmax].dropna()
@@ -622,13 +633,13 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         tmpsf_hot_mean = tmpsf[hot_cols].mean(axis=1)
 
         ax3.plot(tmpsf_hot_mean.index, tmpsf_hot_mean.values,
-                 color="#7A0177", linewidth=0.8, alpha=0.85)
-        ax3.set_ylabel("TMPSF (°C)", fontsize=11)
-        ax3.set_xlabel("Date", fontsize=11)
-        ax3.tick_params(labelsize=9)
+                 color="#7A0177", linewidth=POSTER_LINE_WIDTH, alpha=0.85)
+        ax3.set_ylabel("TMPSF (°C)", fontsize=POSTER_LABEL_SIZE)
+        ax3.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE)
+        ax3.tick_params(labelsize=POSTER_TICK_SIZE)
         ax3.grid(True, alpha=0.3)
         ax3.set_title("Diffuse Flow — ASHES (TMPSF hot channel mean, excl. ch06)",
-                      fontsize=10, loc="left", style="italic")
+                      fontsize=POSTER_LABEL_SIZE, loc="left", style="italic")
 
         # Constrain TMPSF y-axis to visible range
         tmpsf_visible = tmpsf_hot_mean.loc[xmin:xmax].dropna()
@@ -639,30 +650,30 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         # Deployment change annotation on TMPSF panel
         deploy_change = pd.Timestamp("2024-06-26")  # ~when 2022-2024 ended, 2024-2025 began
         if xmin <= deploy_change <= xmax:
-            ax3.axvline(deploy_change, color="#666666", linestyle=":", linewidth=1, alpha=0.7)
+            ax3.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
             ax3.annotate("Deployment\nchange", xy=(deploy_change, tmpsf_visible.max()),
                          xytext=(5, -5), textcoords="offset points",
-                         fontsize=7, color="#666666", va="top")
+                         fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top")
     else:
-        ax1.set_xlabel("Date", fontsize=11)
+        ax1.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE)
 
     # Deployment change annotation on main panel
     deploy_change = pd.Timestamp("2024-06-26")
     if xmin <= deploy_change <= xmax:
-        ax1.axvline(deploy_change, color="#666666", linestyle=":", linewidth=1, alpha=0.7)
+        ax1.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
 
     # Legend in main temperature panel (top), not TMPSF panel
     ax1.legend(all_lines, all_labels,
-               loc="lower right", ncol=2, fontsize=7, frameon=True, framealpha=0.9)
+               loc="lower right", ncol=2, fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
 
     ax1.set_title("Hydrothermal Vent Temperatures and Volcanic Deformation\nAxial Seamount (2022–2025)",
-                  fontsize=13, fontweight="bold")
+                  fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax1.grid(True, alpha=0.3)
 
     # Panel labels (a), (b) for reference in text
-    ax1.text(-0.08, 1.02, "(a)", transform=ax1.transAxes, fontsize=14, fontweight="bold", va="bottom")
+    ax1.text(-0.08, 1.02, "(a)", transform=ax1.transAxes, fontsize=POSTER_PANEL_LABEL_SIZE, fontweight="bold", va="bottom")
     if tmpsf is not None:
-        ax3.text(-0.08, 1.05, "(b)", transform=ax3.transAxes, fontsize=14, fontweight="bold", va="bottom")
+        ax3.text(-0.08, 1.05, "(b)", transform=ax3.transAxes, fontsize=POSTER_PANEL_LABEL_SIZE, fontweight="bold", va="bottom")
 
     # Figure caption (24pt font for poster) - use dedicated axes to avoid overlap
     caption = (
