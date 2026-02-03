@@ -448,8 +448,8 @@ def fig_survey_overview(records, fig_path):
     """Figure 1: All instruments as subplots (skip records with no deployed data)."""
     plotable = [r for r in records if r[r["deployed"]].shape[0] > 0]
     n = len(plotable)
-    fig, axes = plt.subplots(n, 1, figsize=(10, 2 * n + 2), dpi=POSTER_DPI, sharex=True)
-    fig.subplots_adjust(bottom=0.12, top=0.95)
+    fig, axes = plt.subplots(n, 1, figsize=(10, 2.5 * n), dpi=POSTER_DPI, sharex=True)
+    fig.subplots_adjust(bottom=0.08, top=0.95)
     if n == 1:
         axes = [axes]
 
@@ -487,18 +487,9 @@ def fig_survey_overview(records, fig_path):
         ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
 
     fig.suptitle("MISO Temperature Survey — All Recent Instruments (2022–2025)",
-                 fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+                 fontsize=POSTER_TITLE_SIZE, fontweight="bold", y=0.98)
 
-    # Figure caption
-    caption = (
-        "Daily mean vent temperatures from all recent MISO deployments at Axial Seamount. "
-        "Top 3 panels: 2022–2024 deployment (Inferno, Hell, El Guapo). "
-        "Bottom 5 panels: 2024–2025 deployment (Hell-ASHES, Inferno, Virgin, El Guapo Top, Trevi). "
-        "Vertical dashed line marks deployment change (June 2024). "
-        "Note varying y-axis scales across panels."
-    )
-    add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
-
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
     print(f"Saved: {fig_path}")
@@ -569,9 +560,9 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
 
     # Two panels if TMPSF available, otherwise single (with space for caption)
     if tmpsf is not None:
-        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 14), dpi=POSTER_DPI,
+        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 15), dpi=POSTER_DPI,
                                         height_ratios=[3, 1], sharex=True)
-        fig.subplots_adjust(bottom=0.16, top=0.94, right=0.82, hspace=0.12)
+        fig.subplots_adjust(bottom=0.18, top=0.94, right=0.82, hspace=0.12)
     else:
         fig, ax1 = plt.subplots(figsize=(10, 10), dpi=POSTER_DPI)
         fig.subplots_adjust(bottom=0.25, right=0.82)
