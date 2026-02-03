@@ -320,9 +320,9 @@ def add_figure_caption(fig, caption_text, fontsize=20):
 
 def fig_historical_eruption(records, fig_path, eruption_date=None):
     """Figure: Historical vent temperatures around the 2011 eruption."""
-    # Create figure with space for 24pt caption below
-    fig = plt.figure(figsize=(8, 8), dpi=300)
-    ax = fig.add_axes([0.1, 0.30, 0.85, 0.60])  # [left, bottom, width, height] - plot area
+    # Create figure with space for caption below
+    fig = plt.figure(figsize=(10, 8), dpi=300)
+    ax = fig.add_axes([0.1, 0.28, 0.85, 0.62])  # [left, bottom, width, height] - plot area
 
     for rec in records:
         deployed = rec[rec["deployed"]]
@@ -338,23 +338,26 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=9)
 
-    # Legend in lower left, inside plot
-    ax.legend(loc="lower left", fontsize=9, frameon=True, framealpha=0.9)
+    # Tighten y-axis to focus on eruption response (230-330°C)
+    ax.set_ylim(230, 330)
+
+    # Legend in upper left (away from eruption signal)
+    ax.legend(loc="upper left", fontsize=9, frameon=True, framealpha=0.9)
 
     # Eruption annotation
     if eruption_date:
         ax.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=1.5, alpha=0.8)
-        ax.annotate("April 6, 2011\neruption", xy=(eruption_date, ax.get_ylim()[1]),
+        ax.annotate("April 6, 2011\neruption", xy=(eruption_date, 328),
                     xytext=(5, -5), textcoords="offset points",
                     fontsize=9, color="#CC0000", va="top", fontweight="bold")
 
-    # Figure caption (24pt font for poster)
+    # Figure caption (20pt font for poster)
     caption = (
         "Daily mean vent fluid temperatures at Casper and Diva vents (ASHES field) spanning the "
-        "April 6, 2011 Axial Seamount eruption. Y-axis: temperature (°C). Both vents maintained "
-        "stable temperatures (~310–320°C) for 7 months pre-eruption. Diva dropped ~70°C immediately "
-        "post-eruption with partial recovery; Casper remained stable. Drops to ~150°C at end = "
-        "instrument recovery."
+        "April 6, 2011 Axial Seamount eruption. Y-axis: temperature (°C), constrained to 230–330°C "
+        "to highlight eruption response. Both vents maintained stable temperatures (~310–320°C) "
+        "for 7 months pre-eruption. Diva dropped ~70°C immediately post-eruption with partial "
+        "recovery; Casper remained stable. Instrument recovery (~150°C) off-scale."
     )
     add_figure_caption(fig, caption, fontsize=20)
 
@@ -433,7 +436,8 @@ def fig_survey_overview(records, fig_path):
     """Figure 1: All instruments as subplots (skip records with no deployed data)."""
     plotable = [r for r in records if r[r["deployed"]].shape[0] > 0]
     n = len(plotable)
-    fig, axes = plt.subplots(n, 1, figsize=(10, 2 * n), dpi=300, sharex=True)
+    fig, axes = plt.subplots(n, 1, figsize=(10, 2 * n + 2), dpi=300, sharex=True)
+    fig.subplots_adjust(bottom=0.12, top=0.95)
     if n == 1:
         axes = [axes]
 
@@ -471,8 +475,18 @@ def fig_survey_overview(records, fig_path):
         ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=0.8, alpha=0.7)
 
     fig.suptitle("MISO Temperature Survey — All Recent Instruments (2022–2025)",
-                 fontsize=13, fontweight="bold", y=1.01)
-    plt.tight_layout()
+                 fontsize=13, fontweight="bold")
+
+    # Figure caption
+    caption = (
+        "Daily mean vent temperatures from all recent MISO deployments at Axial Seamount. "
+        "Top 3 panels: 2022–2024 deployment (Inferno, Hell, El Guapo). "
+        "Bottom 5 panels: 2024–2025 deployment (Hell-ASHES, Inferno, Virgin, El Guapo Top, Trevi). "
+        "Vertical dashed line marks deployment change (June 2024). "
+        "Note varying y-axis scales across panels."
+    )
+    add_figure_caption(fig, caption, fontsize=20)
+
     fig.savefig(fig_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved: {fig_path}")
