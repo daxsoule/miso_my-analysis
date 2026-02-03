@@ -11,10 +11,11 @@ permeability.
 **Research questions:**
 - How does hydrothermal discharge vary, in space and time, in relation to
   magma movements and associated changes in upflow-zone permeability?
-- Do differences in crustal strain and subsurface faulting lead to differences
-  in upflow-zone permeability among vent fields?
 - How does venting temperature respond to magma movements across different
   vent fields with varying proximity to magma sources?
+- Is there a temporal relationship between variations in focused vent
+  temperature (MISO) and diffuse flow temperature (TMPSF) at the ASHES
+  vent field?
 
 **Vent fields studied:**
 - ASHES
@@ -25,6 +26,7 @@ permeability.
 **Related projects:**
 - `../my-analysis_botpt/` - Differential uplift (volcanic deformation)
 - `../earthquakes_my-analysis/` - Seismicity patterns
+- `../my-analysis_tmpsf/` - ASHES diffuse flow temperatures (TMPSF)
 
 ## Core Principles
 
@@ -92,6 +94,19 @@ belong in the paper.
 - **Path**: `../earthquakes_my-analysis/outputs/data/earthquake_daily.parquet`
 - **Temporal coverage**: 2015-01-22 to 2026-01-25
 
+### 4. TMPSF Diffuse Flow Temperatures (from sibling project)
+
+- **Description**: OOI TMPSF (Temperature Mooring Sea Floor) instrument measuring diffuse hydrothermal flow at the ASHES vent field. 24 thermistor channels, QC-filtered and averaged.
+- **Location**: ASHES vent field (45.933653°N, 130.013688°W) — co-located with 2024-2025 MISO deployments (Inferno, Hell, Virgin, Trevi, Vixen)
+- **Reference designator**: RS03ASHS-MJ03B-07-TMPSFA301
+- **Path**: `../my-analysis_tmpsf/outputs/data/`
+  - `tmpsf_2015-2026_daily.parquet` — daily averaged temperatures (24 channels)
+  - `tmpsf_2015-2026_hourly.parquet` — hourly averaged temperatures
+  - `channel_statistics.csv` — per-channel summary (mean, std, regime)
+- **Temporal coverage**: 2015-01-01 to 2026-01-22
+- **Temperature range**: 2–5°C (diffuse flow; 12 "hot" channels, 12 "cool" channels)
+- **Known issues**: Channel 06 failed in 2017; Channel 02 offset/drift 2015-2017
+
 ### Usage
 
 ```python
@@ -106,8 +121,11 @@ bpr = pd.read_parquet('../my-analysis_botpt/outputs/data/differential_uplift_dai
 # Load earthquake daily counts
 eq = pd.read_parquet('../earthquakes_my-analysis/outputs/data/earthquake_daily.parquet')
 
+# Load TMPSF diffuse flow temperatures
+tmpsf = pd.read_parquet('../my-analysis_tmpsf/outputs/data/tmpsf_2015-2026_daily.parquet')
+
 # Merge for multi-instrument analysis
-merged = bpr.join(eq, how='inner')
+merged = bpr.join(eq, how='inner').join(tmpsf, how='inner')
 ```
 
 ## Technical Environment
