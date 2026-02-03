@@ -400,11 +400,18 @@ def fig_poster_bpr(records, summary, bpr, fig_path):
     # BPR on right axis
     if bpr is not None:
         ax2 = ax1.twinx()
-        ax2.plot(bpr.index, bpr["differential_m"] * 100,
+        bpr_cm = bpr["differential_m"] * 100
+        ax2.plot(bpr.index, bpr_cm,
                  color="#0868AC", alpha=0.5, linewidth=1.5, linestyle="--",
                  label="Differential uplift")
         ax2.set_ylabel("Differential uplift (cm)", color="#0868AC", fontsize=12)
         ax2.tick_params(axis="y", labelcolor="#0868AC", labelsize=10)
+
+        # Constrain y-axis to visible BPR range (within the x-axis window)
+        bpr_visible = bpr_cm.loc[xmin:xmax].dropna()
+        if len(bpr_visible) > 0:
+            ypad = (bpr_visible.max() - bpr_visible.min()) * 0.05
+            ax2.set_ylim(bpr_visible.min() - ypad, bpr_visible.max() + ypad)
 
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
