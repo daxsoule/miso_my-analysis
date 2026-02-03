@@ -155,6 +155,9 @@ VENT_COLORS = {
     "Vixen / Mkr218": "#F0E442",  # Yellow
     "Casper": "#0072B2",       # Blue
     "Diva": "#D55E00",         # Vermillion
+    "Castle": "#009E73",       # Bluish green
+    "Trevi": "#E69F00",        # Orange
+    "Vixen": "#CC79A7",        # Reddish purple
 }
 
 # --- Historical instruments (2010-2011 eruption period) ---
@@ -173,6 +176,34 @@ HISTORICAL_INSTRUMENTS = [
         "vent": "Diva",
         "field": "ASHES",
         "deployment": "2010-2011",
+        "format": "miso_historical_tab",
+    },
+]
+
+# --- 2015-2019 instruments (pre-inflation period) ---
+INSTRUMENTS_2015_2019 = [
+    {
+        "file": DATA_HISTORICAL / "castle" / "castle_2001-2022.csv",
+        "instrument": "Castle combined",
+        "vent": "Castle",
+        "field": "ASHES",
+        "deployment": "2015-2019",
+        "format": "castle_csv",
+    },
+    {
+        "file": DATA_HISTORICAL / "vixen" / "MISO103-Chip1-Axial-2015-Vixen.txt",
+        "instrument": "MISO 103",
+        "vent": "Vixen",
+        "field": "ASHES",
+        "deployment": "2015-2019",
+        "format": "miso_historical_tab",
+    },
+    {
+        "file": DATA_HISTORICAL / "trevi" / "MISO101-Chip1-Axial-2015-Trevi.txt",
+        "instrument": "MISO 101",
+        "vent": "Trevi",
+        "field": "ASHES",
+        "deployment": "2015-2019",
         "format": "miso_historical_tab",
     },
 ]
@@ -271,7 +302,7 @@ def load_instrument(config):
 
 
 def load_historical_instrument(config):
-    """Load historical MISO data (2010-2011 format)."""
+    """Load historical MISO data (various formats)."""
     path = config["file"]
     fmt = config["format"]
 
@@ -280,6 +311,11 @@ def load_historical_instrument(config):
         df = pd.read_csv(path, sep="\t", encoding="utf-8-sig")
         df.columns = ["datetime", "temperature"]
         df["datetime"] = pd.to_datetime(df["datetime"], format="%m/%d/%y %H:%M:%S.%f")
+    elif fmt == "castle_csv":
+        # Combined castle CSV: datetime index, Temperature column
+        df = pd.read_csv(path, index_col=0, parse_dates=True)
+        df = df.reset_index()
+        df.columns = ["datetime", "temperature"]
     else:
         raise ValueError(f"Unknown format: {fmt}")
 
@@ -389,6 +425,68 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
         "Y-axis: temperature (°C); x-axis: date. Colors distinguish Casper (blue) and Diva (orange) vents in ASHES field. "
         "Both vents maintained stable temperatures (~310–320°C) for 7 months pre-eruption. "
         "Diva dropped ~70°C immediately post-eruption with gradual recovery; Casper remained stable throughout."
+    )
+    add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
+
+    fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
+    plt.close(fig)
+    print(f"Saved: {fig_path}")
+
+
+def fig_2015_2019(records, fig_path, eruption_date=None):
+    """Figure: Castle, Vixen, Trevi temperatures spanning 2015-2019 (includes April 2015 eruption)."""
+    # Create figure with space for caption below
+    fig = plt.figure(figsize=(10, 8), dpi=POSTER_DPI)
+    ax = fig.add_axes([0.1, 0.28, 0.85, 0.62])
+
+    # Time window
+    time_start = pd.Timestamp("2015-01-01")
+    time_end = pd.Timestamp("2019-01-01")
+
+    for rec in records:
+        deployed = rec[rec["deployed"]]
+        # Filter to time window
+        deployed = deployed[(deployed.index >= time_start) & (deployed.index <= time_end)]
+        if len(deployed) == 0:
+            continue
+
+        vent = rec.attrs["vent"]
+        color = VENT_COLORS.get(vent, "#333333")
+        label = f"{vent}"
+        daily = deployed["temperature"].resample("D").mean()
+        ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
+
+    ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+    ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+    ax.set_title("ASHES Vent Temperatures (2015–2019)\nAxial Seamount", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+    ax.grid(True, alpha=0.3)
+    ax.tick_params(labelsize=POSTER_TICK_SIZE)
+    set_spine_width(ax)
+
+    # Clean date formatting - 6 month intervals
+    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=0, ha="center")
+
+    # Set x-axis limits with balanced padding
+    ax.set_xlim(left=time_start - pd.Timedelta(days=45), right=time_end + pd.Timedelta(days=45))
+
+    # Legend in upper right
+    ax.legend(loc="upper right", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
+
+    # April 2015 eruption annotation
+    if eruption_date:
+        ax.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.8)
+        ax.annotate("April 24, 2015\neruption", xy=(eruption_date, ax.get_ylim()[1]),
+                    xytext=(5, -5), textcoords="offset points",
+                    fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="top", fontweight="bold")
+
+    # Figure caption
+    caption = (
+        "Daily mean vent temperatures from Castle, Vixen, and Trevi vents (ASHES field) spanning 2015–2019. "
+        "Y-axis: temperature (°C); x-axis: date. Colors distinguish Castle (green), Vixen (purple), and Trevi (orange). "
+        "The April 24, 2015 eruption is marked. Castle shows stable high temperatures (~260°C); "
+        "Vixen and Trevi show lower, more variable temperatures (~150–200°C)."
     )
     add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
 
@@ -843,6 +941,33 @@ def main():
         eruption_date = pd.Timestamp("2011-04-06")  # April 2011 eruption
         fig_historical_eruption(historical_records, FIG_DIR / "eruption_2011_casper_diva.png",
                                 eruption_date=eruption_date)
+
+    # Load and plot 2015-2019 data (Castle, Vixen, Trevi)
+    print("\nLoading 2015-2019 instruments (Castle, Vixen, Trevi)...")
+    records_2015 = []
+    for config in INSTRUMENTS_2015_2019:
+        vent = config["vent"]
+        inst = config["instrument"]
+        print(f"Loading {vent} ({inst})...")
+        try:
+            rec = load_historical_instrument(config)
+            records_2015.append(rec)
+            deployed = rec[rec["deployed"]]
+            n_dep = len(deployed)
+            if n_dep > 0:
+                temp = deployed["temperature"].dropna()
+                print(f"  Deployed samples: {n_dep:,}  |  "
+                      f"Temp: {temp.min():.1f}–{temp.max():.1f}°C  |  "
+                      f"Capped: {rec.attrs['n_capped']}  Spikes: {rec.attrs['n_spikes']}")
+            else:
+                print(f"  No deployed samples (total rows: {len(rec)})")
+        except Exception as e:
+            print(f"  ERROR loading {vent} ({inst}): {e}")
+
+    if records_2015:
+        eruption_2015 = pd.Timestamp("2015-04-24")  # April 2015 eruption
+        fig_2015_2019(records_2015, FIG_DIR / "ashes_2015_2019_castle_vixen_trevi.png",
+                      eruption_date=eruption_2015)
 
     print("\nDone!")
 
