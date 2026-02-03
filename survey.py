@@ -131,16 +131,17 @@ INSTRUMENTS = [
 ]
 
 # --- Colors: one per vent label (consistent across deployments) ---
+# Colorblind-safe palette (Okabe-Ito)
 VENT_COLORS = {
-    "Inferno": "#D62728",
-    "Hell": "#FF7F0E",
-    "El Guapo": "#2CA02C",
-    "El Guapo (Top)": "#1F77B4",
-    "Virgin": "#9467BD",
-    "Trevi / Mkr156": "#8C564B",
-    "Vixen / Mkr218": "#E377C2",
-    "Casper": "#17BECF",
-    "Diva": "#BCBD22",
+    "Inferno": "#D55E00",      # Vermillion
+    "Hell": "#E69F00",         # Orange
+    "El Guapo": "#0072B2",     # Blue
+    "El Guapo (Top)": "#56B4E9",  # Sky blue
+    "Virgin": "#CC79A7",       # Reddish purple
+    "Trevi / Mkr156": "#009E73",  # Bluish green
+    "Vixen / Mkr218": "#F0E442",  # Yellow
+    "Casper": "#0072B2",       # Blue
+    "Diva": "#D55E00",         # Vermillion
 }
 
 # --- Historical instruments (2010-2011 eruption period) ---
@@ -307,7 +308,7 @@ def load_historical_instrument(config):
     return out
 
 
-def add_figure_caption(fig, caption_text, fontsize=24):
+def add_figure_caption(fig, caption_text, fontsize=20):
     """Add a caption below the figure with proper spacing."""
     # Create a separate axes for the caption at the bottom
     caption_ax = fig.add_axes([0.05, 0.02, 0.9, 0.18])  # [left, bottom, width, height]
@@ -355,7 +356,7 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
         "post-eruption with partial recovery; Casper remained stable. Drops to ~150°C at end = "
         "instrument recovery."
     )
-    add_figure_caption(fig, caption, fontsize=24)
+    add_figure_caption(fig, caption, fontsize=20)
 
     fig.savefig(fig_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
@@ -432,9 +433,20 @@ def fig_survey_overview(records, fig_path):
     """Figure 1: All instruments as subplots (skip records with no deployed data)."""
     plotable = [r for r in records if r[r["deployed"]].shape[0] > 0]
     n = len(plotable)
-    fig, axes = plt.subplots(n, 1, figsize=(8, 8 * (2.2 * n) / 14), dpi=300, sharex=False)
+    fig, axes = plt.subplots(n, 1, figsize=(10, 2 * n), dpi=300, sharex=True)
     if n == 1:
         axes = [axes]
+
+    # Find global date range for shared x-axis
+    all_starts = []
+    all_ends = []
+    for rec in plotable:
+        deployed = rec[rec["deployed"]]
+        if len(deployed) > 0:
+            all_starts.append(deployed.index.min())
+            all_ends.append(deployed.index.max())
+    xmin = min(all_starts) - pd.Timedelta(days=14)
+    xmax = max(all_ends) + pd.Timedelta(days=14)
 
     for ax, rec in zip(axes, plotable):
         deployed = rec[rec["deployed"]]
@@ -449,17 +461,14 @@ def fig_survey_overview(records, fig_path):
         ax.set_title(label, fontsize=10, fontweight="bold", loc="left")
         ax.grid(True, alpha=0.3)
         ax.tick_params(labelsize=8)
+        ax.set_xlim(xmin, xmax)
 
     axes[-1].set_xlabel("Date")
 
     # Deployment change annotation on all panels
     deploy_change = pd.Timestamp("2024-06-26")
     for ax in axes:
-        xlim = ax.get_xlim()
-        xmin_ax = pd.Timestamp.fromordinal(int(xlim[0]))
-        xmax_ax = pd.Timestamp.fromordinal(int(xlim[1]))
-        if xmin_ax <= deploy_change <= xmax_ax:
-            ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=0.8, alpha=0.7)
+        ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=0.8, alpha=0.7)
 
     fig.suptitle("MISO Temperature Survey — All Recent Instruments (2022–2025)",
                  fontsize=13, fontweight="bold", y=1.01)
@@ -508,7 +517,7 @@ def fig_hightemp_comparison(records, summary, fig_path):
         "exhibiting dramatic swings (100–315°C). El Guapo Top is the hottest and most stable (~341°C). "
         "Vertical dashed line marks deployment change (June 2024)."
     )
-    add_figure_caption(fig, caption, fontsize=24)
+    add_figure_caption(fig, caption, fontsize=20)
 
     fig.savefig(fig_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
@@ -522,22 +531,23 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
 
     # Poster-specific styling: group by vent identity across deployments
     # Same base color for same vent, solid=2022-2024, dashed=2024-2025
+    # Uses colorblind-safe Okabe-Ito palette
     POSTER_STYLE = {
-        ("Inferno", "2022-2024"):      {"color": "#D62728", "ls": "-",  "lw": 1.4, "label": "Inferno (ASHES, 2022–24)"},
-        ("Inferno", "2024-2025"):      {"color": "#D62728", "ls": "--", "lw": 1.4, "label": "Inferno (ASHES, 2024–25)"},
-        ("Hell", "2022-2024"):         {"color": "#FF7F0E", "ls": "-",  "lw": 1.4, "label": "Hell (ID, 2022–24)"},
-        ("El Guapo", "2022-2024"):     {"color": "#2CA02C", "ls": "-",  "lw": 1.4, "label": "El Guapo (ID, 2022–24)"},
-        ("El Guapo (Top)", "2024-2025"): {"color": "#2CA02C", "ls": "--", "lw": 1.4, "label": "El Guapo Top (ID, 2024–25)"},
+        ("Inferno", "2022-2024"):      {"color": "#D55E00", "ls": "-",  "lw": 1.4, "label": "Inferno (ASHES, 2022–24)"},
+        ("Inferno", "2024-2025"):      {"color": "#D55E00", "ls": "--", "lw": 1.4, "label": "Inferno (ASHES, 2024–25)"},
+        ("Hell", "2022-2024"):         {"color": "#E69F00", "ls": "-",  "lw": 1.4, "label": "Hell (ID, 2022–24)"},
+        ("El Guapo", "2022-2024"):     {"color": "#0072B2", "ls": "-",  "lw": 1.4, "label": "El Guapo (ID, 2022–24)"},
+        ("El Guapo (Top)", "2024-2025"): {"color": "#56B4E9", "ls": "--", "lw": 1.4, "label": "El Guapo Top (ID, 2024–25)"},
     }
 
     # Two panels if TMPSF available, otherwise single (with space for caption)
     if tmpsf is not None:
-        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(8, 14), dpi=300,
+        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 14), dpi=300,
                                         height_ratios=[3, 1], sharex=True)
-        fig.subplots_adjust(bottom=0.18, top=0.94, hspace=0.12)
+        fig.subplots_adjust(bottom=0.16, top=0.94, hspace=0.12)
     else:
-        fig, ax1 = plt.subplots(figsize=(8, 10), dpi=300)
-        fig.subplots_adjust(bottom=0.28)
+        fig, ax1 = plt.subplots(figsize=(10, 10), dpi=300)
+        fig.subplots_adjust(bottom=0.25)
 
     for rec in high_recs:
         deployed = rec[rec["deployed"]]
@@ -635,17 +645,22 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
                   fontsize=13, fontweight="bold")
     ax1.grid(True, alpha=0.3)
 
+    # Panel labels (a), (b) for reference in text
+    ax1.text(-0.08, 1.02, "(a)", transform=ax1.transAxes, fontsize=14, fontweight="bold", va="bottom")
+    if tmpsf is not None:
+        ax3.text(-0.08, 1.05, "(b)", transform=ax3.transAxes, fontsize=14, fontweight="bold", va="bottom")
+
     # Figure caption (24pt font for poster) - use dedicated axes to avoid overlap
     caption = (
-        "Top panel: Daily mean focused vent temperatures (°C) from high-temperature vents at "
-        "Axial Seamount with differential seafloor uplift (cm, right axis). Bottom panel: "
-        "TMPSF diffuse flow temperature (°C) from ASHES field hot channels (excl. ch06). "
+        "(a) Daily mean focused vent temperatures (°C) from high-temperature vents at "
+        "Axial Seamount with differential seafloor uplift (cm, right axis). "
+        "(b) TMPSF diffuse flow temperature (°C) from ASHES field hot channels (excl. ch06). "
         "Vertical dashed line marks deployment change (June 2024). Inferno and El Guapo "
         "show continuity across deployments. BPR shows steady inflation through 2025."
     )
-    caption_ax = fig.add_axes([0.05, 0.01, 0.9, 0.15])
+    caption_ax = fig.add_axes([0.05, 0.01, 0.9, 0.13])
     caption_ax.axis("off")
-    caption_ax.text(0.5, 0.95, caption, ha="center", va="top", fontsize=24,
+    caption_ax.text(0.5, 0.95, caption, ha="center", va="top", fontsize=20,
                     wrap=True, transform=caption_ax.transAxes, multialignment="center")
 
     fig.savefig(fig_path, dpi=300, bbox_inches="tight")
