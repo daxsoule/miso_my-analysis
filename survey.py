@@ -16,6 +16,7 @@ from pathlib import Path
 DATA_2022 = Path("/home/jovyan/my_data/axial/axial_miso/2022_2024_MISO")
 DATA_2024 = Path("/home/jovyan/my_data/axial/axial_miso/2024_2025_MISO")
 BPR_PATH = Path("/home/jovyan/repos/specKitScience/my-analysis_botpt/outputs/data/differential_uplift_daily.parquet")
+TMPSF_PATH = Path("/home/jovyan/repos/specKitScience/my-analysis_tmpsf/outputs/data/tmpsf_2015-2026_daily.parquet")
 
 OUTPUT_DIR = Path(__file__).parent / "outputs"
 DATA_DIR = OUTPUT_DIR / "data"
@@ -316,6 +317,16 @@ def fig_survey_overview(records, fig_path):
         ax.tick_params(labelsize=8)
 
     axes[-1].set_xlabel("Date")
+
+    # Deployment change annotation on all panels
+    deploy_change = pd.Timestamp("2024-06-26")
+    for ax in axes:
+        xlim = ax.get_xlim()
+        xmin_ax = pd.Timestamp.fromordinal(int(xlim[0]))
+        xmax_ax = pd.Timestamp.fromordinal(int(xlim[1]))
+        if xmin_ax <= deploy_change <= xmax_ax:
+            ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=0.8, alpha=0.7)
+
     fig.suptitle("MISO Temperature Survey — All Recent Instruments (2022–2025)",
                  fontsize=13, fontweight="bold", y=1.01)
     plt.tight_layout()
@@ -343,16 +354,25 @@ def fig_hightemp_comparison(records, summary, fig_path):
     ax.set_xlabel("Date")
     ax.set_ylabel("Temperature (°C)")
     ax.set_title("High-Temperature Vents — Daily Mean Comparison (2022–2025)")
-    ax.legend(loc="upper right", fontsize=9)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15),
+              ncol=3, fontsize=8, frameon=True)
     ax.grid(True, alpha=0.3)
-    plt.tight_layout()
+
+    # Deployment change annotation
+    deploy_change = pd.Timestamp("2024-06-26")
+    ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=1, alpha=0.7)
+    ax.annotate("Deployment\nchange", xy=(deploy_change, ax.get_ylim()[1]),
+                xytext=(5, -5), textcoords="offset points",
+                fontsize=8, color="#666666", va="top")
+
+    fig.subplots_adjust(bottom=0.25)
     fig.savefig(fig_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved: {fig_path}")
 
 
-def fig_poster_bpr(records, summary, bpr, fig_path):
-    """Figure 3: Poster figure — high-temp vents + BPR overlay."""
+def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
+    """Figure 3: Poster figure — high-temp vents + BPR overlay, with TMPSF panel."""
     high_recs = [r for r, s in zip(records, summary.itertuples())
                  if s.Classification == "High-temp"]
 
@@ -366,7 +386,12 @@ def fig_poster_bpr(records, summary, bpr, fig_path):
         ("El Guapo (Top)", "2024-2025"): {"color": "#2CA02C", "ls": "--", "lw": 1.4, "label": "El Guapo Top (ID, 2024–25)"},
     }
 
-    fig, ax1 = plt.subplots(figsize=(8, 8 * 6 / 14), dpi=300)
+    # Two panels if TMPSF available, otherwise single
+    if tmpsf is not None:
+        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(8, 8 * 8 / 14), dpi=300,
+                                        height_ratios=[3, 1], sharex=True)
+    else:
+        fig, ax1 = plt.subplots(figsize=(8, 8 * 6 / 14), dpi=300)
 
     for rec in high_recs:
         deployed = rec[rec["deployed"]]
@@ -380,9 +405,8 @@ def fig_poster_bpr(records, summary, bpr, fig_path):
                  color=style["color"], linestyle=style["ls"],
                  linewidth=style["lw"], alpha=0.85, label=style["label"])
 
-    ax1.set_xlabel("Date", fontsize=12)
-    ax1.set_ylabel("Temperature (°C)", fontsize=12)
-    ax1.tick_params(labelsize=10)
+    ax1.set_ylabel("Vent Temperature (°C)", fontsize=11)
+    ax1.tick_params(labelsize=9)
 
     # Constrain x-axis to temperature data range (with small padding)
     all_starts = []
@@ -404,8 +428,8 @@ def fig_poster_bpr(records, summary, bpr, fig_path):
         ax2.plot(bpr.index, bpr_cm,
                  color="#0868AC", alpha=0.5, linewidth=1.5, linestyle="--",
                  label="Differential uplift")
-        ax2.set_ylabel("Differential uplift (cm)", color="#0868AC", fontsize=12)
-        ax2.tick_params(axis="y", labelcolor="#0868AC", labelsize=10)
+        ax2.set_ylabel("Differential uplift (cm)", color="#0868AC", fontsize=11)
+        ax2.tick_params(axis="y", labelcolor="#0868AC", labelsize=9)
 
         # Constrain y-axis to visible BPR range (within the x-axis window)
         bpr_visible = bpr_cm.loc[xmin:xmax].dropna()
@@ -415,17 +439,58 @@ def fig_poster_bpr(records, summary, bpr, fig_path):
 
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2,
-                   loc="upper center", bbox_to_anchor=(0.5, -0.12),
-                   ncol=3, fontsize=9, frameon=True)
+        all_lines = lines1 + lines2
+        all_labels = labels1 + labels2
     else:
-        ax1.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12),
-                   ncol=3, fontsize=9, frameon=True)
+        all_lines, all_labels = ax1.get_legend_handles_labels()
+
+    # TMPSF panel
+    if tmpsf is not None:
+        # Mean of hot channels (excluding ch06 which has sensor issues)
+        hot_channel_nums = [1, 2, 3, 5, 7, 8, 10, 12, 13, 14, 16]  # ch06 excluded
+        hot_cols = [f"temperature{n:02d}" for n in hot_channel_nums if f"temperature{n:02d}" in tmpsf.columns]
+        tmpsf_hot_mean = tmpsf[hot_cols].mean(axis=1)
+
+        ax3.plot(tmpsf_hot_mean.index, tmpsf_hot_mean.values,
+                 color="#7A0177", linewidth=0.8, alpha=0.85)
+        ax3.set_ylabel("TMPSF (°C)", fontsize=11)
+        ax3.set_xlabel("Date", fontsize=11)
+        ax3.tick_params(labelsize=9)
+        ax3.grid(True, alpha=0.3)
+        ax3.set_title("Diffuse Flow — ASHES (TMPSF hot channel mean, excl. ch06)",
+                      fontsize=10, loc="left", style="italic")
+
+        # Constrain TMPSF y-axis to visible range
+        tmpsf_visible = tmpsf_hot_mean.loc[xmin:xmax].dropna()
+        if len(tmpsf_visible) > 0:
+            ypad = (tmpsf_visible.max() - tmpsf_visible.min()) * 0.1
+            ax3.set_ylim(tmpsf_visible.min() - ypad, tmpsf_visible.max() + ypad)
+
+        # Deployment change annotation on TMPSF panel
+        deploy_change = pd.Timestamp("2024-06-26")  # ~when 2022-2024 ended, 2024-2025 began
+        if xmin <= deploy_change <= xmax:
+            ax3.axvline(deploy_change, color="#666666", linestyle=":", linewidth=1, alpha=0.7)
+            ax3.annotate("Deployment\nchange", xy=(deploy_change, tmpsf_visible.max()),
+                         xytext=(5, -5), textcoords="offset points",
+                         fontsize=7, color="#666666", va="top")
+    else:
+        ax1.set_xlabel("Date", fontsize=11)
+
+    # Deployment change annotation on main panel
+    deploy_change = pd.Timestamp("2024-06-26")
+    if xmin <= deploy_change <= xmax:
+        ax1.axvline(deploy_change, color="#666666", linestyle=":", linewidth=1, alpha=0.7)
+
+    # Legend below bottom axis
+    bottom_ax = ax3 if tmpsf is not None else ax1
+    bottom_ax.legend(all_lines, all_labels,
+                     loc="upper center", bbox_to_anchor=(0.5, -0.25),
+                     ncol=3, fontsize=8, frameon=True)
 
     ax1.set_title("Hydrothermal Vent Temperatures and Volcanic Deformation\nAxial Seamount (2022–2025)",
-                  fontsize=14, fontweight="bold")
+                  fontsize=13, fontweight="bold")
     ax1.grid(True, alpha=0.3)
-    fig.subplots_adjust(bottom=0.2)
+    plt.tight_layout()
     fig.savefig(fig_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved: {fig_path}")
@@ -471,11 +536,17 @@ def main():
         bpr = pd.read_parquet(BPR_PATH)
         print(f"\nBPR data loaded: {bpr.index.min()} to {bpr.index.max()}")
 
+    # Load TMPSF
+    tmpsf = None
+    if TMPSF_PATH.exists():
+        tmpsf = pd.read_parquet(TMPSF_PATH)
+        print(f"TMPSF data loaded: {tmpsf.index.min()} to {tmpsf.index.max()}")
+
     # Figures
     print("\nGenerating figures...")
     fig_survey_overview(records, FIG_DIR / "survey_overview.png")
     fig_hightemp_comparison(records, summary, FIG_DIR / "survey_hightemp_comparison.png")
-    fig_poster_bpr(records, summary, bpr, FIG_DIR / "poster_temp_bpr.png")
+    fig_poster_bpr(records, summary, bpr, FIG_DIR / "poster_temp_bpr_tmpsf.png", tmpsf=tmpsf)
 
     print("\nDone!")
 
