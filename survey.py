@@ -47,6 +47,7 @@ POSTER_PANEL_LABEL_SIZE = 22  # (a), (b) labels
 POSTER_CAPTION_SIZE = 18    # figure captions (smaller than title)
 POSTER_LINE_WIDTH = 2.0     # main data lines
 POSTER_ANNOT_LINE_WIDTH = 2.0  # vertical annotation lines
+POSTER_SPINE_WIDTH = 2.0    # plot bounding box
 
 # --- Instrument registry ---
 # Each entry: (file_path, vent_name, field, deployment, format, temp_col, date_col)
@@ -320,6 +321,12 @@ def load_historical_instrument(config):
     return out
 
 
+def set_spine_width(ax, width=POSTER_SPINE_WIDTH):
+    """Set the linewidth for all spines (plot bounding box) of an axes."""
+    for spine in ax.spines.values():
+        spine.set_linewidth(width)
+
+
 def add_figure_caption(fig, caption_text, fontsize=POSTER_CAPTION_SIZE):
     """Add a caption below the figure with proper spacing."""
     # Create a separate axes for the caption at the bottom
@@ -349,6 +356,7 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
     ax.set_title("Vent Temperatures Around the April 2011 Eruption\nAxial Seamount", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
+    set_spine_width(ax)
 
     # Tighten y-axis to focus on eruption response (230-330°C)
     ax.set_ylim(230, 330)
@@ -478,6 +486,7 @@ def fig_survey_overview(records, fig_path):
         ax.grid(True, alpha=0.3)
         ax.tick_params(labelsize=POSTER_TICK_SIZE)
         ax.set_xlim(xmin, xmax)
+        set_spine_width(ax)
 
     axes[-1].set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
 
@@ -486,8 +495,8 @@ def fig_survey_overview(records, fig_path):
     for ax in axes:
         ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
 
-    fig.suptitle("MISO Temperature Survey — All Recent Instruments (2022–2025)",
-                 fontsize=POSTER_TITLE_SIZE, fontweight="bold", y=0.98)
+    fig.suptitle("MISO Temperature Survey\nAll Recent Instruments (2022–2025)",
+                 fontsize=POSTER_TITLE_SIZE, fontweight="bold", y=0.99)
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
@@ -515,10 +524,11 @@ def fig_hightemp_comparison(records, summary, fig_path):
 
     ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax.set_title("High-Temperature Vents — Daily Mean Comparison (2022–2025)", fontsize=POSTER_TITLE_SIZE)
+    ax.set_title("High-Temperature Vents\nDaily Mean Comparison (2022–2025)", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=POSTER_LEGEND_SIZE, frameon=True)
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
+    set_spine_width(ax)
 
     # Deployment change annotation
     deploy_change = pd.Timestamp("2024-06-26")
@@ -633,6 +643,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         ax3.grid(True, alpha=0.3)
         ax3.set_title("Diffuse Flow — ASHES (TMPSF hot channel mean, excl. ch06)",
                       fontsize=POSTER_LABEL_SIZE, loc="left", style="italic")
+        set_spine_width(ax3)
 
         # Constrain TMPSF y-axis to visible range
         tmpsf_visible = tmpsf_hot_mean.loc[xmin:xmax].dropna()
@@ -663,6 +674,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     ax1.set_title("Hydrothermal Vent Temperatures and Volcanic Deformation\nAxial Seamount (2022–2025)",
                   fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax1.grid(True, alpha=0.3)
+    set_spine_width(ax1)
 
     # Panel labels (a), (b) for reference in text
     ax1.text(-0.08, 1.02, "(a)", transform=ax1.transAxes, fontsize=POSTER_PANEL_LABEL_SIZE, fontweight="bold", va="bottom")
