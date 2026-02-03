@@ -645,12 +645,14 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
 
     # TMPSF panel
     if tmpsf is not None:
-        # Mean of hot channels (excluding ch06 which has sensor issues)
-        hot_channel_nums = [1, 2, 3, 5, 7, 8, 10, 12, 13, 14, 16]  # ch06 excluded
-        hot_cols = [f"temperature{n:02d}" for n in hot_channel_nums if f"temperature{n:02d}" in tmpsf.columns]
-        tmpsf_hot_mean = tmpsf[hot_cols].mean(axis=1)
+        # 2nd highest of all channels at each timestep (excluding ch06 which has sensor issues)
+        # This avoids single-sensor artifacts while still showing high values
+        all_channel_nums = [n for n in range(1, 25) if n != 6]  # ch06 excluded
+        all_cols = [f"temperature{n:02d}" for n in all_channel_nums if f"temperature{n:02d}" in tmpsf.columns]
+        # Get 2nd highest by sorting and taking index -2
+        tmpsf_2nd = tmpsf[all_cols].apply(lambda row: row.nlargest(2).iloc[-1], axis=1)
 
-        ax3.plot(tmpsf_hot_mean.index, tmpsf_hot_mean.values,
+        ax3.plot(tmpsf_2nd.index, tmpsf_2nd.values,
                  color="#7A0177", linewidth=POSTER_LINE_WIDTH, alpha=0.85)
         ax3.set_ylabel("TMPSF (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax3.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
@@ -659,12 +661,12 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         ax3.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
         ax3.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
         ax3.grid(True, alpha=0.3)
-        ax3.set_title("Diffuse Flow — ASHES (TMPSF hot channel mean, excl. ch06)",
+        ax3.set_title("Diffuse Flow — ASHES (TMPSF 2nd highest channel, excl. ch06)",
                       fontsize=POSTER_LABEL_SIZE, loc="left", style="italic")
         set_spine_width(ax3)
 
         # Constrain TMPSF y-axis to visible range
-        tmpsf_visible = tmpsf_hot_mean.loc[xmin:xmax].dropna()
+        tmpsf_visible = tmpsf_2nd.loc[xmin:xmax].dropna()
         if len(tmpsf_visible) > 0:
             ypad = (tmpsf_visible.max() - tmpsf_visible.min()) * 0.1
             ax3.set_ylim(tmpsf_visible.min() - ypad, tmpsf_visible.max() + ypad)
