@@ -12,9 +12,15 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from pathlib import Path
 
+# --- Font configuration: Helvetica for all figures ---
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+plt.rcParams['font.size'] = 10
+
 # --- Paths ---
 DATA_2022 = Path("/home/jovyan/my_data/axial/axial_miso/2022_2024_MISO")
 DATA_2024 = Path("/home/jovyan/my_data/axial/axial_miso/2024_2025_MISO")
+DATA_HISTORICAL = Path("/home/jovyan/my_data/axial/axial_miso")
 BPR_PATH = Path("/home/jovyan/repos/specKitScience/my-analysis_botpt/outputs/data/differential_uplift_daily.parquet")
 TMPSF_PATH = Path("/home/jovyan/repos/specKitScience/my-analysis_tmpsf/outputs/data/tmpsf_2015-2026_daily.parquet")
 
@@ -133,7 +139,29 @@ VENT_COLORS = {
     "Virgin": "#9467BD",
     "Trevi / Mkr156": "#8C564B",
     "Vixen / Mkr218": "#E377C2",
+    "Casper": "#17BECF",
+    "Diva": "#BCBD22",
 }
+
+# --- Historical instruments (2010-2011 eruption period) ---
+HISTORICAL_INSTRUMENTS = [
+    {
+        "file": DATA_HISTORICAL / "casper" / "MISO104-Chip1-Axial-2010-Casper.txt",
+        "instrument": "MISO 104",
+        "vent": "Casper",
+        "field": "ASHES",
+        "deployment": "2010-2011",
+        "format": "miso_historical_tab",
+    },
+    {
+        "file": DATA_HISTORICAL / "diva" / "MISO129-Chip1-Axial-2010-Diva.txt",
+        "instrument": "MISO 129",
+        "vent": "Diva",
+        "field": "ASHES",
+        "deployment": "2010-2011",
+        "format": "miso_historical_tab",
+    },
+]
 
 
 def remove_spikes_mad(series, window_hours=24, threshold=5.0):
@@ -226,6 +254,112 @@ def load_instrument(config):
     out.attrs["n_spikes"] = n_spikes
 
     return out
+
+
+def load_historical_instrument(config):
+    """Load historical MISO data (2010-2011 format)."""
+    path = config["file"]
+    fmt = config["format"]
+
+    if fmt == "miso_historical_tab":
+        # Tab-delimited: "Date Time\tTemperature   (*C)"
+        df = pd.read_csv(path, sep="\t", encoding="utf-8-sig")
+        df.columns = ["datetime", "temperature"]
+        df["datetime"] = pd.to_datetime(df["datetime"], format="%m/%d/%y %H:%M:%S.%f")
+    else:
+        raise ValueError(f"Unknown format: {fmt}")
+
+    out = pd.DataFrame({"temperature": df["temperature"].values, "datetime": df["datetime"].values})
+    out = out.set_index("datetime").sort_index()
+
+    # Cap unphysical values
+    n_capped = int((out["temperature"] > PHYSICAL_MAX).sum())
+    out.loc[out["temperature"] > PHYSICAL_MAX, "temperature"] = np.nan
+
+    # Settling window QC
+    hot_mask = out["temperature"] > DEPLOYMENT_THRESHOLD
+    if hot_mask.any():
+        first_hot = out[hot_mask].index.min()
+        stable_start = first_hot + pd.Timedelta(hours=SETTLING_HOURS)
+        out["deployed"] = (out.index >= stable_start) & (out["temperature"] > 50)
+    else:
+        out["deployed"] = out["temperature"] > 50
+
+    # MAD spike removal on deployed data
+    n_spikes = 0
+    deployed_mask = out["deployed"]
+    if deployed_mask.sum() > 10:
+        temp_cleaned, n_spikes = remove_spikes_mad(
+            out.loc[deployed_mask, "temperature"],
+            window_hours=MAD_WINDOW_HOURS,
+            threshold=MAD_THRESHOLD,
+        )
+        out.loc[deployed_mask, "temperature"] = temp_cleaned
+
+    # Metadata
+    out.attrs["instrument"] = config["instrument"]
+    out.attrs["vent"] = config["vent"]
+    out.attrs["field"] = config["field"]
+    out.attrs["deployment"] = config["deployment"]
+    out.attrs["n_capped"] = n_capped
+    out.attrs["n_spikes"] = n_spikes
+
+    return out
+
+
+def add_figure_caption(fig, caption_text, fontsize=24):
+    """Add a caption below the figure with proper spacing."""
+    # Create a separate axes for the caption at the bottom
+    caption_ax = fig.add_axes([0.05, 0.02, 0.9, 0.18])  # [left, bottom, width, height]
+    caption_ax.axis('off')
+    caption_ax.text(0.5, 1.0, caption_text, ha="center", va="top", fontsize=fontsize,
+                    wrap=True, transform=caption_ax.transAxes,
+                    multialignment="center")
+
+
+def fig_historical_eruption(records, fig_path, eruption_date=None):
+    """Figure: Historical vent temperatures around the 2011 eruption."""
+    # Create figure with space for 24pt caption below
+    fig = plt.figure(figsize=(8, 8), dpi=300)
+    ax = fig.add_axes([0.1, 0.30, 0.85, 0.60])  # [left, bottom, width, height] - plot area
+
+    for rec in records:
+        deployed = rec[rec["deployed"]]
+        vent = rec.attrs["vent"]
+        color = VENT_COLORS.get(vent, "#333333")
+        label = f"{vent}"
+        daily = deployed["temperature"].resample("D").mean()
+        ax.plot(daily.index, daily.values, color=color, linewidth=1.2, alpha=0.85, label=label)
+
+    ax.set_xlabel("Date", fontsize=11)
+    ax.set_ylabel("Temperature (°C)", fontsize=11)
+    ax.set_title("Vent Temperatures Around the April 2011 Eruption\nAxial Seamount", fontsize=12, fontweight="bold")
+    ax.grid(True, alpha=0.3)
+    ax.tick_params(labelsize=9)
+
+    # Legend in lower left, inside plot
+    ax.legend(loc="lower left", fontsize=9, frameon=True, framealpha=0.9)
+
+    # Eruption annotation
+    if eruption_date:
+        ax.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=1.5, alpha=0.8)
+        ax.annotate("April 6, 2011\neruption", xy=(eruption_date, ax.get_ylim()[1]),
+                    xytext=(5, -5), textcoords="offset points",
+                    fontsize=9, color="#CC0000", va="top", fontweight="bold")
+
+    # Figure caption (24pt font for poster)
+    caption = (
+        "Daily mean vent fluid temperatures at Casper and Diva vents (ASHES field) spanning the "
+        "April 6, 2011 Axial Seamount eruption. Y-axis: temperature (°C). Both vents maintained "
+        "stable temperatures (~310–320°C) for 7 months pre-eruption. Diva dropped ~70°C immediately "
+        "post-eruption with partial recovery; Casper remained stable. Drops to ~150°C at end = "
+        "instrument recovery. TODO: Add deformation data for this period."
+    )
+    add_figure_caption(fig, caption, fontsize=24)
+
+    fig.savefig(fig_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {fig_path}")
 
 
 def compute_summary(records):
@@ -340,7 +474,9 @@ def fig_hightemp_comparison(records, summary, fig_path):
     high_recs = [r for r, s in zip(records, summary.itertuples())
                  if s.Classification == "High-temp"]
 
-    fig, ax = plt.subplots(figsize=(8, 8 * 5 / 14), dpi=300)
+    # Create figure with space for caption
+    fig = plt.figure(figsize=(8, 6), dpi=300)
+    ax = fig.add_axes([0.1, 0.35, 0.85, 0.55])
 
     for rec in high_recs:
         deployed = rec[rec["deployed"]]
@@ -354,8 +490,7 @@ def fig_hightemp_comparison(records, summary, fig_path):
     ax.set_xlabel("Date")
     ax.set_ylabel("Temperature (°C)")
     ax.set_title("High-Temperature Vents — Daily Mean Comparison (2022–2025)")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15),
-              ncol=3, fontsize=8, frameon=True)
+    ax.legend(loc="upper right", fontsize=8, frameon=True)
     ax.grid(True, alpha=0.3)
 
     # Deployment change annotation
@@ -365,7 +500,16 @@ def fig_hightemp_comparison(records, summary, fig_path):
                 xytext=(5, -5), textcoords="offset points",
                 fontsize=8, color="#666666", va="top")
 
-    fig.subplots_adjust(bottom=0.25)
+    # Figure caption (24pt font for poster)
+    caption = (
+        "Daily mean temperatures from high-temperature vents at Axial Seamount (2022–2025). "
+        "Y-axis: temperature (°C). Inferno (ASHES) shows stable ~285–310°C across both deployments. "
+        "Hell and El Guapo (International District) show greater variability, with El Guapo "
+        "exhibiting dramatic swings (100–315°C). El Guapo Top is the hottest and most stable (~341°C). "
+        "Vertical dashed line marks deployment change (June 2024)."
+    )
+    add_figure_caption(fig, caption, fontsize=24)
+
     fig.savefig(fig_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved: {fig_path}")
@@ -386,12 +530,14 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         ("El Guapo (Top)", "2024-2025"): {"color": "#2CA02C", "ls": "--", "lw": 1.4, "label": "El Guapo Top (ID, 2024–25)"},
     }
 
-    # Two panels if TMPSF available, otherwise single
+    # Two panels if TMPSF available, otherwise single (with space for caption)
     if tmpsf is not None:
-        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(8, 8 * 8 / 14), dpi=300,
+        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(8, 14), dpi=300,
                                         height_ratios=[3, 1], sharex=True)
+        fig.subplots_adjust(bottom=0.18, top=0.94, hspace=0.12)
     else:
-        fig, ax1 = plt.subplots(figsize=(8, 8 * 6 / 14), dpi=300)
+        fig, ax1 = plt.subplots(figsize=(8, 10), dpi=300)
+        fig.subplots_adjust(bottom=0.28)
 
     for rec in high_recs:
         deployed = rec[rec["deployed"]]
@@ -481,16 +627,28 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     if xmin <= deploy_change <= xmax:
         ax1.axvline(deploy_change, color="#666666", linestyle=":", linewidth=1, alpha=0.7)
 
-    # Legend below bottom axis
+    # Legend inside bottom panel
     bottom_ax = ax3 if tmpsf is not None else ax1
     bottom_ax.legend(all_lines, all_labels,
-                     loc="upper center", bbox_to_anchor=(0.5, -0.25),
-                     ncol=3, fontsize=8, frameon=True)
+                     loc="lower right", ncol=2, fontsize=7, frameon=True, framealpha=0.9)
 
     ax1.set_title("Hydrothermal Vent Temperatures and Volcanic Deformation\nAxial Seamount (2022–2025)",
                   fontsize=13, fontweight="bold")
     ax1.grid(True, alpha=0.3)
-    plt.tight_layout()
+
+    # Figure caption (24pt font for poster) - use dedicated axes to avoid overlap
+    caption = (
+        "Top panel: Daily mean focused vent temperatures (°C) from high-temperature vents at "
+        "Axial Seamount with differential seafloor uplift (cm, right axis). Bottom panel: "
+        "TMPSF diffuse flow temperature (°C) from ASHES field hot channels (excl. ch06). "
+        "Vertical dashed line marks deployment change (June 2024). Inferno and El Guapo "
+        "show continuity across deployments. BPR shows steady inflation through 2025."
+    )
+    caption_ax = fig.add_axes([0.05, 0.01, 0.9, 0.15])
+    caption_ax.axis("off")
+    caption_ax.text(0.5, 0.95, caption, ha="center", va="top", fontsize=24,
+                    wrap=True, transform=caption_ax.transAxes, multialignment="center")
+
     fig.savefig(fig_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved: {fig_path}")
@@ -547,6 +705,33 @@ def main():
     fig_survey_overview(records, FIG_DIR / "survey_overview.png")
     fig_hightemp_comparison(records, summary, FIG_DIR / "survey_hightemp_comparison.png")
     fig_poster_bpr(records, summary, bpr, FIG_DIR / "poster_temp_bpr_tmpsf.png", tmpsf=tmpsf)
+
+    # Load and plot historical data (2010-2011 eruption period)
+    print("\nLoading historical instruments (2010-2011)...")
+    historical_records = []
+    for config in HISTORICAL_INSTRUMENTS:
+        vent = config["vent"]
+        inst = config["instrument"]
+        print(f"Loading {vent} ({inst})...")
+        try:
+            rec = load_historical_instrument(config)
+            historical_records.append(rec)
+            deployed = rec[rec["deployed"]]
+            n_dep = len(deployed)
+            if n_dep > 0:
+                temp = deployed["temperature"].dropna()
+                print(f"  Deployed samples: {n_dep:,}  |  "
+                      f"Temp: {temp.min():.1f}–{temp.max():.1f}°C  |  "
+                      f"Capped: {rec.attrs['n_capped']}  Spikes: {rec.attrs['n_spikes']}")
+            else:
+                print(f"  No deployed samples (total rows: {len(rec)})")
+        except Exception as e:
+            print(f"  ERROR loading {vent} ({inst}): {e}")
+
+    if historical_records:
+        eruption_date = pd.Timestamp("2011-04-06")  # April 2011 eruption
+        fig_historical_eruption(historical_records, FIG_DIR / "eruption_2011_casper_diva.png",
+                                eruption_date=eruption_date)
 
     print("\nDone!")
 

@@ -18,10 +18,12 @@ permeability.
   vent field?
 
 **Vent fields studied:**
-- ASHES
+- ASHES (Inferno, Hell, Virgin, Trevi/Mkr156, Vixen/Mkr218)
+- International District (Hell, El Guapo, El Guapo Top)
 - Coquille
-- International District (including Hell, Inferno, El Guapo)
 - CASM
+
+Note: "Hell" exists as distinct vents in both ASHES and International District.
 
 **Related projects:**
 - `../my-analysis_botpt/` - Differential uplift (volcanic deformation)

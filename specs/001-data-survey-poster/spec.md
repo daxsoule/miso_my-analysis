@@ -138,4 +138,5 @@
 - **Hell (ASHES)** (MISO 2023-002, max 80°C) — notably lower temperature than Hell in the 2022-2024 International District deployment (296-316°C). This is a *different* Hell vent in the ASHES field.
 - **Vixen / Marker 218** (MISO 2023-012) — only 34 rows, effectively a failed deployment.
 - The 2024-2025 deployment shifts geographic focus from International District to ASHES, with El Guapo (Top) as the only continuing ID vent.
-- **TODO: Missing data — Tiny Tower / MISO 2017-002**. Expected to be a 2024-2025 deployment record but no data file found in the MISO data directories. The 2017-002 instrument was previously deployed at Inferno (2022-2024). Follow up: locate the Tiny Tower data file (may not have been downloaded/delivered yet).
+- **Tiny Tower / MISO 2017-002** — instrument was flooded during deployment and did not produce data. No data file exists.
+- **TODO: 2010-2011 deformation data** — The BPR data only starts from 2015 (OOI cabled array). To overlay deformation on the April 2011 eruption figure, need to obtain campaign pressure or GPS data from that era.
