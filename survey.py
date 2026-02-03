@@ -26,7 +26,7 @@ TMPSF_PATH = Path("/home/jovyan/repos/specKitScience/my-analysis_tmpsf/outputs/d
 
 OUTPUT_DIR = Path(__file__).parent / "outputs"
 DATA_DIR = OUTPUT_DIR / "data"
-FIG_DIR = OUTPUT_DIR / "figures"
+FIG_DIR = OUTPUT_DIR / "figures" / "poster"
 
 # --- QC parameters ---
 MISSING_FLAG = -888.88
