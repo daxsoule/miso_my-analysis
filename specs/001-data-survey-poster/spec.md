@@ -2,7 +2,7 @@
 
 **Directory**: `specs/001-data-survey-poster`
 **Created**: 2026-02-02
-**Status**: Draft
+**Status**: Complete
 **Input**: Survey all recent MISO deployment data (2022-2024 and 2024-2025) to identify records with consistent high hydrothermal temperatures and produce poster-quality figures.
 
 ## Research Question(s)
@@ -106,16 +106,17 @@
 
 ## Completion Criteria
 
-- [ ] All HiT deployment files from both 2022-2024 and 2024-2025 loaded and parsed
-- [ ] Logger/reference thermistor files explicitly excluded with documented rationale
-- [ ] Summary table produced for all instruments
-- [ ] Classification applied (high-temp / intermittent / low-temp)
-- [ ] Figure 1 (survey overview) generated
-- [ ] Figure 2 (high-temp comparison) generated
-- [ ] Figure 3 (poster figure with BPR overlay) generated
-- [ ] All figures meet constitution standards (PNG, 300 DPI, labeled axes)
-- [ ] Results reproducible from raw data via script
-- [ ] Quality issues documented (2023-010 suspect max, 2023-012 insufficient data)
+- [x] All HiT deployment files from both 2022-2024 and 2024-2025 loaded and parsed
+- [x] Logger/reference thermistor files explicitly excluded with documented rationale
+- [x] Summary table produced for all instruments
+- [x] Classification applied (high-temp / intermittent / low-temp)
+- [x] Figure 1 (survey overview) generated
+- [x] Figure 2 (high-temp comparison) generated
+- [x] Figure 3 (poster figure with BPR overlay) generated — includes TMPSF panel
+- [x] All figures meet constitution standards (PNG, 600 DPI, labeled axes, colorblind-safe)
+- [x] Results reproducible from raw data via script (`survey.py`)
+- [x] Quality issues documented (2023-010 suspect max, 2023-012 insufficient data)
+- [x] Historical 2011 eruption figure added (Casper, Diva)
 
 ## Assumptions & Limitations
 
