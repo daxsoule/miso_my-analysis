@@ -37,12 +37,14 @@ MAD_THRESHOLD = 5.0
 MAD_WINDOW_HOURS = 24
 
 # --- Poster figure styling (optimized for viewing at 3-6 feet) ---
-POSTER_TITLE_SIZE = 16
-POSTER_LABEL_SIZE = 14      # axis labels
-POSTER_TICK_SIZE = 12       # tick labels
-POSTER_LEGEND_SIZE = 11
-POSTER_ANNOT_SIZE = 11      # annotations
-POSTER_PANEL_LABEL_SIZE = 18  # (a), (b) labels
+POSTER_DPI = 600            # high DPI for sharp text on posters
+POSTER_TITLE_SIZE = 24
+POSTER_LABEL_SIZE = 18      # axis labels
+POSTER_TICK_SIZE = 16       # tick labels
+POSTER_LEGEND_SIZE = 14
+POSTER_ANNOT_SIZE = 14      # annotations
+POSTER_PANEL_LABEL_SIZE = 22  # (a), (b) labels
+POSTER_CAPTION_SIZE = 18    # figure captions (smaller than title)
 POSTER_LINE_WIDTH = 2.0     # main data lines
 POSTER_ANNOT_LINE_WIDTH = 2.0  # vertical annotation lines
 
@@ -318,7 +320,7 @@ def load_historical_instrument(config):
     return out
 
 
-def add_figure_caption(fig, caption_text, fontsize=20):
+def add_figure_caption(fig, caption_text, fontsize=POSTER_CAPTION_SIZE):
     """Add a caption below the figure with proper spacing."""
     # Create a separate axes for the caption at the bottom
     caption_ax = fig.add_axes([0.05, 0.02, 0.9, 0.18])  # [left, bottom, width, height]
@@ -331,7 +333,7 @@ def add_figure_caption(fig, caption_text, fontsize=20):
 def fig_historical_eruption(records, fig_path, eruption_date=None):
     """Figure: Historical vent temperatures around the 2011 eruption."""
     # Create figure with space for caption below
-    fig = plt.figure(figsize=(10, 8), dpi=300)
+    fig = plt.figure(figsize=(10, 8), dpi=POSTER_DPI)
     ax = fig.add_axes([0.1, 0.28, 0.85, 0.62])  # [left, bottom, width, height] - plot area
 
     for rec in records:
@@ -342,8 +344,8 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
         daily = deployed["temperature"].resample("D").mean()
         ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
 
-    ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE)
-    ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE)
+    ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+    ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax.set_title("Vent Temperatures Around the April 2011 Eruption\nAxial Seamount", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
@@ -369,9 +371,9 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
         "for 7 months pre-eruption. Diva dropped ~70°C immediately post-eruption with partial "
         "recovery; Casper remained stable. Instrument recovery (~150°C) off-scale."
     )
-    add_figure_caption(fig, caption, fontsize=20)
+    add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
 
-    fig.savefig(fig_path, dpi=300, bbox_inches="tight")
+    fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
     print(f"Saved: {fig_path}")
 
@@ -446,7 +448,7 @@ def fig_survey_overview(records, fig_path):
     """Figure 1: All instruments as subplots (skip records with no deployed data)."""
     plotable = [r for r in records if r[r["deployed"]].shape[0] > 0]
     n = len(plotable)
-    fig, axes = plt.subplots(n, 1, figsize=(10, 2 * n + 2), dpi=300, sharex=True)
+    fig, axes = plt.subplots(n, 1, figsize=(10, 2 * n + 2), dpi=POSTER_DPI, sharex=True)
     fig.subplots_adjust(bottom=0.12, top=0.95)
     if n == 1:
         axes = [axes]
@@ -471,13 +473,13 @@ def fig_survey_overview(records, fig_path):
 
         daily = deployed["temperature"].resample("D").mean()
         ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH)
-        ax.set_ylabel("°C", fontsize=POSTER_LABEL_SIZE)
+        ax.set_ylabel("°C", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax.set_title(label, fontsize=POSTER_LABEL_SIZE, fontweight="bold", loc="left")
         ax.grid(True, alpha=0.3)
         ax.tick_params(labelsize=POSTER_TICK_SIZE)
         ax.set_xlim(xmin, xmax)
 
-    axes[-1].set_xlabel("Date", fontsize=POSTER_LABEL_SIZE)
+    axes[-1].set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
 
     # Deployment change annotation on all panels
     deploy_change = pd.Timestamp("2024-06-26")
@@ -495,9 +497,9 @@ def fig_survey_overview(records, fig_path):
         "Vertical dashed line marks deployment change (June 2024). "
         "Note varying y-axis scales across panels."
     )
-    add_figure_caption(fig, caption, fontsize=20)
+    add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
 
-    fig.savefig(fig_path, dpi=300, bbox_inches="tight")
+    fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
     print(f"Saved: {fig_path}")
 
@@ -508,7 +510,7 @@ def fig_hightemp_comparison(records, summary, fig_path):
                  if s.Classification == "High-temp"]
 
     # Create figure with space for caption and legend outside
-    fig = plt.figure(figsize=(10, 6), dpi=300)
+    fig = plt.figure(figsize=(10, 6), dpi=POSTER_DPI)
     ax = fig.add_axes([0.08, 0.35, 0.65, 0.55])  # Leave room on right for legend
 
     for rec in high_recs:
@@ -520,8 +522,8 @@ def fig_hightemp_comparison(records, summary, fig_path):
         daily = deployed["temperature"].resample("D").mean()
         ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
 
-    ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE)
-    ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE)
+    ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+    ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax.set_title("High-Temperature Vents — Daily Mean Comparison (2022–2025)", fontsize=POSTER_TITLE_SIZE)
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=POSTER_LEGEND_SIZE, frameon=True)
     ax.grid(True, alpha=0.3)
@@ -542,9 +544,9 @@ def fig_hightemp_comparison(records, summary, fig_path):
         "exhibiting dramatic swings (100–315°C). El Guapo Top is the hottest and most stable (~341°C). "
         "Vertical dashed line marks deployment change (June 2024)."
     )
-    add_figure_caption(fig, caption, fontsize=20)
+    add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
 
-    fig.savefig(fig_path, dpi=300, bbox_inches="tight")
+    fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
     print(f"Saved: {fig_path}")
 
@@ -567,12 +569,12 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
 
     # Two panels if TMPSF available, otherwise single (with space for caption)
     if tmpsf is not None:
-        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 14), dpi=300,
+        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 14), dpi=POSTER_DPI,
                                         height_ratios=[3, 1], sharex=True)
-        fig.subplots_adjust(bottom=0.16, top=0.94, hspace=0.12)
+        fig.subplots_adjust(bottom=0.16, top=0.94, right=0.82, hspace=0.12)
     else:
-        fig, ax1 = plt.subplots(figsize=(10, 10), dpi=300)
-        fig.subplots_adjust(bottom=0.25)
+        fig, ax1 = plt.subplots(figsize=(10, 10), dpi=POSTER_DPI)
+        fig.subplots_adjust(bottom=0.25, right=0.82)
 
     for rec in high_recs:
         deployed = rec[rec["deployed"]]
@@ -586,7 +588,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
                  color=style["color"], linestyle=style["ls"],
                  linewidth=style["lw"], alpha=0.85, label=style["label"])
 
-    ax1.set_ylabel("Vent Temperature (°C)", fontsize=POSTER_LABEL_SIZE)
+    ax1.set_ylabel("Vent Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax1.tick_params(labelsize=POSTER_TICK_SIZE)
 
     # Constrain x-axis to temperature data range (with small padding)
@@ -609,7 +611,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         ax2.plot(bpr.index, bpr_cm,
                  color="#0868AC", alpha=0.5, linewidth=POSTER_LINE_WIDTH + 0.5, linestyle="--",
                  label="Differential uplift")
-        ax2.set_ylabel("Differential uplift (cm)", color="#0868AC", fontsize=POSTER_LABEL_SIZE)
+        ax2.set_ylabel("Differential uplift (cm)", color="#0868AC", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax2.tick_params(axis="y", labelcolor="#0868AC", labelsize=POSTER_TICK_SIZE)
 
         # Constrain y-axis to visible BPR range (within the x-axis window)
@@ -634,8 +636,8 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
 
         ax3.plot(tmpsf_hot_mean.index, tmpsf_hot_mean.values,
                  color="#7A0177", linewidth=POSTER_LINE_WIDTH, alpha=0.85)
-        ax3.set_ylabel("TMPSF (°C)", fontsize=POSTER_LABEL_SIZE)
-        ax3.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE)
+        ax3.set_ylabel("TMPSF (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        ax3.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax3.tick_params(labelsize=POSTER_TICK_SIZE)
         ax3.grid(True, alpha=0.3)
         ax3.set_title("Diffuse Flow — ASHES (TMPSF hot channel mean, excl. ch06)",
@@ -655,16 +657,17 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
                          xytext=(5, -5), textcoords="offset points",
                          fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top")
     else:
-        ax1.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE)
+        ax1.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
 
     # Deployment change annotation on main panel
     deploy_change = pd.Timestamp("2024-06-26")
     if xmin <= deploy_change <= xmax:
         ax1.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
 
-    # Legend in main temperature panel (top), not TMPSF panel
+    # Legend outside plot area to avoid covering data
     ax1.legend(all_lines, all_labels,
-               loc="lower right", ncol=2, fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
+               loc="upper left", bbox_to_anchor=(1.12, 1.0), ncol=1,
+               fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
 
     ax1.set_title("Hydrothermal Vent Temperatures and Volcanic Deformation\nAxial Seamount (2022–2025)",
                   fontsize=POSTER_TITLE_SIZE, fontweight="bold")
@@ -685,10 +688,10 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     )
     caption_ax = fig.add_axes([0.05, 0.01, 0.9, 0.13])
     caption_ax.axis("off")
-    caption_ax.text(0.5, 0.95, caption, ha="center", va="top", fontsize=20,
+    caption_ax.text(0.5, 0.95, caption, ha="center", va="top", fontsize=POSTER_CAPTION_SIZE,
                     wrap=True, transform=caption_ax.transAxes, multialignment="center")
 
-    fig.savefig(fig_path, dpi=300, bbox_inches="tight")
+    fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
     print(f"Saved: {fig_path}")
 
