@@ -16,7 +16,7 @@
 
 ### Primary Data: 2022-2024 Deployment
 
-- **Source**: MISO high-temperature sensors deployed at International District vents (Axial Seamount)
+- **Source**: MISO high-temperature sensors deployed at ASHES and International District vents (Axial Seamount)
 - **Coverage**: Aug 2022 – Jun 2024 (~22 months)
 - **Format**: CSV with datetime + temperature columns
 - **Access**: `/home/jovyan/my_data/axial/axial_miso/2022_2024_MISO/`

@@ -37,7 +37,7 @@ INSTRUMENTS = [
         "file": DATA_2022 / "MISOTEMP_2017-002_Axial2022_inferno.csv",
         "instrument": "MISO 2017-002",
         "vent": "Inferno",
-        "field": "International District",
+        "field": "ASHES",
         "deployment": "2022-2024",
         "format": "miso_2022",
         "temp_col": "infernoTemp",
@@ -359,7 +359,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path):
     # Poster-specific styling: group by vent identity across deployments
     # Same base color for same vent, solid=2022-2024, dashed=2024-2025
     POSTER_STYLE = {
-        ("Inferno", "2022-2024"):      {"color": "#D62728", "ls": "-",  "lw": 1.4, "label": "Inferno (ID, 2022–24)"},
+        ("Inferno", "2022-2024"):      {"color": "#D62728", "ls": "-",  "lw": 1.4, "label": "Inferno (ASHES, 2022–24)"},
         ("Inferno", "2024-2025"):      {"color": "#D62728", "ls": "--", "lw": 1.4, "label": "Inferno (ASHES, 2024–25)"},
         ("Hell", "2022-2024"):         {"color": "#FF7F0E", "ls": "-",  "lw": 1.4, "label": "Hell (ID, 2022–24)"},
         ("El Guapo", "2022-2024"):     {"color": "#2CA02C", "ls": "-",  "lw": 1.4, "label": "El Guapo (ID, 2022–24)"},
