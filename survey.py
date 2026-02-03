@@ -385,10 +385,10 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
 
     # Figure caption (20pt font for poster)
     caption = (
-        "Daily mean vent fluid temperatures at Casper and Diva vents (ASHES field) spanning the "
-        "April 6, 2011 Axial Seamount eruption. Both vents maintained stable temperatures "
-        "(~310–320°C) for 7 months pre-eruption. Diva dropped ~70°C immediately post-eruption "
-        "with gradual recovery; Casper remained stable throughout."
+        "Vent temperatures spanning the April 6, 2011 Axial Seamount eruption. "
+        "Y-axis: temperature (°C); x-axis: date. Colors distinguish Casper (blue) and Diva (orange) vents in ASHES field. "
+        "Both vents maintained stable temperatures (~310–320°C) for 7 months pre-eruption. "
+        "Diva dropped ~70°C immediately post-eruption with gradual recovery; Casper remained stable throughout."
     )
     add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
 
@@ -480,15 +480,18 @@ def fig_survey_overview(records, fig_path):
         if len(deployed) > 0:
             all_starts.append(deployed.index.min())
             all_ends.append(deployed.index.max())
-    xmin = min(all_starts) - pd.Timedelta(days=14)
-    xmax = max(all_ends) + pd.Timedelta(days=14)
+    xmin = min(all_starts) - pd.Timedelta(days=45)
+    xmax = max(all_ends) + pd.Timedelta(days=45)
 
     for ax, rec in zip(axes, plotable):
         deployed = rec[rec["deployed"]]
         vent = rec.attrs["vent"]
         dep = rec.attrs["deployment"]
         color = VENT_COLORS.get(vent, "#333333")
-        label = f"{vent} ({rec.attrs['field']}, {dep})"
+        # Abbreviated labels: ID = International District, 22-24 = 2022-2024
+        field_abbr = "ID" if rec.attrs["field"] == "International District" else rec.attrs["field"]
+        dep_abbr = dep.replace("2022-2024", "22–24").replace("2024-2025", "24–25")
+        label = f"{vent} ({field_abbr}, {dep_abbr})"
 
         daily = deployed["temperature"].resample("D").mean()
         ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH)
@@ -500,16 +503,38 @@ def fig_survey_overview(records, fig_path):
         set_spine_width(ax)
 
     axes[-1].set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+    # Clean date formatting (6-month intervals)
+    axes[-1].xaxis.set_major_locator(mdates.MonthLocator(interval=6))
+    axes[-1].xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
 
     # Deployment change annotation on all panels
     deploy_change = pd.Timestamp("2024-06-26")
-    for ax in axes:
+    for i, ax in enumerate(axes):
         ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
+        # Add text annotation on first panel only
+        if i == 0:
+            ax.annotate("Deployment\nchange", xy=(deploy_change, ax.get_ylim()[1]),
+                        xytext=(-5, -5), textcoords="offset points",
+                        fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top", ha="right")
 
     fig.suptitle("MISO Temperature Survey\nAll Recent Instruments (2022–2025)",
                  fontsize=POSTER_TITLE_SIZE, fontweight="bold", y=0.99)
 
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    # Figure caption
+    caption = (
+        "Daily mean vent temperatures from all MISO deployments at Axial Seamount (2022–2025). "
+        "Each panel shows one instrument; y-axis is temperature (°C). "
+        "Abbreviations: ID = International District, ASHES = vent field name. "
+        "High-temp vents (Inferno, Hell, El Guapo) maintain 250–340°C. "
+        "Intermittent vents (Virgin, Trevi) show cooling trends. "
+        "Vertical dotted line marks deployment change (June 2024)."
+    )
+    # Add caption at the very bottom of the figure
+    fig.text(0.5, 0.01, caption, ha="center", va="bottom", fontsize=POSTER_CAPTION_SIZE - 2,
+             wrap=True, multialignment="center",
+             bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9))
+
+    plt.tight_layout(rect=[0, 0.08, 1, 0.96])  # Leave space at bottom for caption
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
     print(f"Saved: {fig_path}")
