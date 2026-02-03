@@ -586,7 +586,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     if tmpsf is not None:
         fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 15), dpi=POSTER_DPI,
                                         height_ratios=[3, 1], sharex=True)
-        fig.subplots_adjust(bottom=0.18, top=0.94, right=0.82, hspace=0.12)
+        fig.subplots_adjust(bottom=0.18, top=0.94, right=0.88, hspace=0.12)
     else:
         fig, ax1 = plt.subplots(figsize=(10, 10), dpi=POSTER_DPI)
         fig.subplots_adjust(bottom=0.25, right=0.82)
@@ -687,10 +687,10 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     if xmin <= deploy_change <= xmax:
         ax1.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
 
-    # Legend outside plot area to avoid covering data
+    # Legend in lower right - compact to fit without obscuring data
     ax1.legend(all_lines, all_labels,
-               loc="upper left", bbox_to_anchor=(1.12, 1.0), ncol=1,
-               fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
+               loc="lower right", ncol=2,
+               fontsize=POSTER_LEGEND_SIZE - 2, frameon=True, framealpha=0.9)
 
     ax1.set_title("Hydrothermal Vent Temperatures and Volcanic Deformation\nAxial Seamount (2022–2025)",
                   fontsize=POSTER_TITLE_SIZE, fontweight="bold")
