@@ -615,8 +615,8 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
             all_starts.append(deployed.index.min())
             all_ends.append(deployed.index.max())
     if all_starts:
-        xmin = min(all_starts) - pd.Timedelta(days=30)
-        xmax = max(all_ends) + pd.Timedelta(days=30)
+        xmin = min(all_starts) - pd.Timedelta(days=45)
+        xmax = max(all_ends) + pd.Timedelta(days=45)
         ax1.set_xlim(xmin, xmax)
 
     # BPR on right axis
@@ -628,6 +628,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
                  label="Differential uplift")
         ax2.set_ylabel("Differential uplift (cm)", color="#0868AC", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax2.tick_params(axis="y", labelcolor="#0868AC", labelsize=POSTER_TICK_SIZE)
+        set_spine_width(ax2)
 
         # Constrain y-axis to visible BPR range (within the x-axis window)
         bpr_visible = bpr_cm.loc[xmin:xmax].dropna()
