@@ -520,36 +520,54 @@ def fig_hightemp_comparison(records, summary, fig_path):
     high_recs = [r for r, s in zip(records, summary.itertuples())
                  if s.Classification == "High-temp"]
 
-    # Create figure with space for caption and legend outside
+    # Create figure with space for caption
     fig = plt.figure(figsize=(10, 6), dpi=POSTER_DPI)
-    ax = fig.add_axes([0.08, 0.35, 0.65, 0.55])  # Leave room on right for legend
+    ax = fig.add_axes([0.10, 0.35, 0.85, 0.55])
+
+    # Find date range for x-axis padding
+    all_starts = []
+    all_ends = []
+    for rec in high_recs:
+        deployed = rec[rec["deployed"]]
+        if len(deployed) > 0:
+            all_starts.append(deployed.index.min())
+            all_ends.append(deployed.index.max())
+    if all_starts:
+        xmin = min(all_starts) - pd.Timedelta(days=45)
+        xmax = max(all_ends) + pd.Timedelta(days=45)
 
     for rec in high_recs:
         deployed = rec[rec["deployed"]]
         vent = rec.attrs["vent"]
         dep = rec.attrs["deployment"]
         color = VENT_COLORS.get(vent, "#333333")
-        label = f"{vent} ({rec.attrs['field']}, {dep})"
+        # Abbreviated labels: ID = International District, 22-24 = 2022-2024
+        field_abbr = "ID" if rec.attrs["field"] == "International District" else rec.attrs["field"]
+        dep_abbr = dep.replace("2022-2024", "22–24").replace("2024-2025", "24–25")
+        label = f"{vent} ({field_abbr}, {dep_abbr})"
         daily = deployed["temperature"].resample("D").mean()
         ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
 
     ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax.set_title("High-Temperature Vents\nDaily Mean Comparison (2022–2025)", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
-    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=POSTER_LEGEND_SIZE, frameon=True)
+    ax.legend(loc="lower left", bbox_to_anchor=(0.62, 0.02), ncol=1, fontsize=POSTER_LEGEND_SIZE - 2, frameon=True, framealpha=0.9)
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
     set_spine_width(ax)
     # Clean date formatting
     ax.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+    # Balanced x-axis padding
+    if all_starts:
+        ax.set_xlim(xmin, xmax)
 
     # Deployment change annotation
     deploy_change = pd.Timestamp("2024-06-26")
     ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
     ax.annotate("Deployment\nchange", xy=(deploy_change, ax.get_ylim()[1]),
-                xytext=(5, -5), textcoords="offset points",
-                fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top")
+                xytext=(-5, -5), textcoords="offset points",
+                fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top", ha="right")
 
     # Figure caption (24pt font for poster)
     caption = (
@@ -575,11 +593,11 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     # Same base color for same vent, solid=2022-2024, dashed=2024-2025
     # Uses colorblind-safe Okabe-Ito palette
     POSTER_STYLE = {
-        ("Inferno", "2022-2024"):      {"color": "#D55E00", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "Inferno (ASHES, 2022–24)"},
-        ("Inferno", "2024-2025"):      {"color": "#D55E00", "ls": "--", "lw": POSTER_LINE_WIDTH, "label": "Inferno (ASHES, 2024–25)"},
-        ("Hell", "2022-2024"):         {"color": "#E69F00", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "Hell (ID, 2022–24)"},
-        ("El Guapo", "2022-2024"):     {"color": "#0072B2", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "El Guapo (ID, 2022–24)"},
-        ("El Guapo (Top)", "2024-2025"): {"color": "#56B4E9", "ls": "--", "lw": POSTER_LINE_WIDTH, "label": "El Guapo Top (ID, 2024–25)"},
+        ("Inferno", "2022-2024"):      {"color": "#D55E00", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "Inferno (ASHES, 22–24)"},
+        ("Inferno", "2024-2025"):      {"color": "#D55E00", "ls": "--", "lw": POSTER_LINE_WIDTH, "label": "Inferno (ASHES, 24–25)"},
+        ("Hell", "2022-2024"):         {"color": "#E69F00", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "Hell (ID, 22–24)"},
+        ("El Guapo", "2022-2024"):     {"color": "#0072B2", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "El Guapo (ID, 22–24)"},
+        ("El Guapo (Top)", "2024-2025"): {"color": "#56B4E9", "ls": "--", "lw": POSTER_LINE_WIDTH, "label": "El Guapo Top (ID, 24–25)"},
     }
 
     # Two panels if TMPSF available, otherwise single (with space for caption)
@@ -689,9 +707,9 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     if xmin <= deploy_change <= xmax:
         ax1.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
 
-    # Legend in lower right - compact to fit without obscuring data
+    # Legend in lower right, to the right of deployment change line (vertical)
     ax1.legend(all_lines, all_labels,
-               loc="lower right", ncol=2,
+               loc="lower left", bbox_to_anchor=(0.62, 0.02), ncol=1,
                fontsize=POSTER_LEGEND_SIZE - 2, frameon=True, framealpha=0.9)
 
     ax1.set_title("Hydrothermal Vent Temperatures and Volcanic Deformation\nAxial Seamount (2022–2025)",
