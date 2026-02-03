@@ -343,12 +343,16 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
     fig = plt.figure(figsize=(10, 8), dpi=POSTER_DPI)
     ax = fig.add_axes([0.1, 0.28, 0.85, 0.62])  # [left, bottom, width, height] - plot area
 
+    # Cut off data at local maximum (mid-July 2011) to exclude instrument recovery
+    data_end = pd.Timestamp("2011-07-18")
+
     for rec in records:
         deployed = rec[rec["deployed"]]
         vent = rec.attrs["vent"]
         color = VENT_COLORS.get(vent, "#333333")
         label = f"{vent}"
         daily = deployed["temperature"].resample("D").mean()
+        daily = daily[daily.index <= data_end]  # Trim to local max
         ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
 
     ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
@@ -358,11 +362,19 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
     set_spine_width(ax)
 
+    # Clean date formatting - 2 month intervals
+    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=0, ha="center")
+
     # Tighten y-axis to focus on eruption response (230-330°C)
     ax.set_ylim(230, 330)
 
-    # Legend in upper left (away from eruption signal)
-    ax.legend(loc="upper left", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
+    # Set x-axis limits with balanced padding on both sides
+    ax.set_xlim(left=pd.Timestamp("2010-08-15"), right=pd.Timestamp("2011-08-01"))
+
+    # Legend in lower left (away from eruption signal)
+    ax.legend(loc="lower left", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
 
     # Eruption annotation
     if eruption_date:
@@ -374,10 +386,9 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
     # Figure caption (20pt font for poster)
     caption = (
         "Daily mean vent fluid temperatures at Casper and Diva vents (ASHES field) spanning the "
-        "April 6, 2011 Axial Seamount eruption. Y-axis: temperature (°C), constrained to 230–330°C "
-        "to highlight eruption response. Both vents maintained stable temperatures (~310–320°C) "
-        "for 7 months pre-eruption. Diva dropped ~70°C immediately post-eruption with partial "
-        "recovery; Casper remained stable. Instrument recovery (~150°C) off-scale."
+        "April 6, 2011 Axial Seamount eruption. Both vents maintained stable temperatures "
+        "(~310–320°C) for 7 months pre-eruption. Diva dropped ~70°C immediately post-eruption "
+        "with gradual recovery; Casper remained stable throughout."
     )
     add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
 
@@ -529,6 +540,9 @@ def fig_hightemp_comparison(records, summary, fig_path):
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
     set_spine_width(ax)
+    # Clean date formatting
+    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
 
     # Deployment change annotation
     deploy_change = pd.Timestamp("2024-06-26")
@@ -640,6 +654,9 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         ax3.set_ylabel("TMPSF (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax3.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax3.tick_params(labelsize=POSTER_TICK_SIZE)
+        # Clean date formatting for x-axis
+        ax3.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
+        ax3.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
         ax3.grid(True, alpha=0.3)
         ax3.set_title("Diffuse Flow — ASHES (TMPSF hot channel mean, excl. ch06)",
                       fontsize=POSTER_LABEL_SIZE, loc="left", style="italic")
@@ -660,6 +677,9 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
                          fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top")
     else:
         ax1.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        # Clean date formatting for x-axis
+        ax1.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
 
     # Deployment change annotation on main panel
     deploy_change = pd.Timestamp("2024-06-26")
