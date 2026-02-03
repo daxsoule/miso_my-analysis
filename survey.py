@@ -297,7 +297,7 @@ def fig_survey_overview(records, fig_path):
     """Figure 1: All instruments as subplots (skip records with no deployed data)."""
     plotable = [r for r in records if r[r["deployed"]].shape[0] > 0]
     n = len(plotable)
-    fig, axes = plt.subplots(n, 1, figsize=(14, 2.2 * n), dpi=300, sharex=False)
+    fig, axes = plt.subplots(n, 1, figsize=(8, 8 * (2.2 * n) / 14), dpi=300, sharex=False)
     if n == 1:
         axes = [axes]
 
@@ -329,7 +329,7 @@ def fig_hightemp_comparison(records, summary, fig_path):
     high_recs = [r for r, s in zip(records, summary.itertuples())
                  if s.Classification == "High-temp"]
 
-    fig, ax = plt.subplots(figsize=(14, 5), dpi=300)
+    fig, ax = plt.subplots(figsize=(8, 8 * 5 / 14), dpi=300)
 
     for rec in high_recs:
         deployed = rec[rec["deployed"]]
@@ -366,7 +366,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path):
         ("El Guapo (Top)", "2024-2025"): {"color": "#2CA02C", "ls": "--", "lw": 1.4, "label": "El Guapo Top (ID, 2024–25)"},
     }
 
-    fig, ax1 = plt.subplots(figsize=(14, 6), dpi=300)
+    fig, ax1 = plt.subplots(figsize=(8, 8 * 6 / 14), dpi=300)
 
     for rec in high_recs:
         deployed = rec[rec["deployed"]]
