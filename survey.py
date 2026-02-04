@@ -67,7 +67,7 @@ INSTRUMENTS = [
     {
         "file": DATA_2022 / "MISOTEMP_2017-019_Axial2022_hel.csv",
         "instrument": "MISO 2017-019",
-        "vent": "Hell",
+        "vent": "Hell (ID)",
         "field": "International District",
         "deployment": "2022-2024",
         "format": "miso_2022",
@@ -100,7 +100,7 @@ INSTRUMENTS = [
     {
         "file": DATA_2024 / "HiT_2023-002_Axial_2024_Deployment.csv",
         "instrument": "MISO 2023-002",
-        "vent": "Hell",
+        "vent": "Hell (ASHES)",
         "field": "ASHES",
         "deployment": "2024-2025",
         "format": "hit_A",  # idx#,DateTime,J-Type,IntTemp,...
@@ -147,7 +147,8 @@ INSTRUMENTS = [
 # Colorblind-safe palette (Okabe-Ito)
 VENT_COLORS = {
     "Inferno": "#D55E00",      # Vermillion
-    "Hell": "#E69F00",         # Orange
+    "Hell (ID)": "#E69F00",    # Orange - International District
+    "Hell (ASHES)": "#F0E442", # Yellow - ASHES field
     "El Guapo": "#0072B2",     # Blue
     "El Guapo (Top)": "#56B4E9",  # Sky blue
     "Virgin": "#CC79A7",       # Reddish purple
@@ -727,9 +728,9 @@ def fig_hightemp_comparison(records, summary, fig_path):
     caption = (
         "Daily mean temperatures from high-temperature vents at Axial Seamount (2022–2025). "
         "Y-axis: temperature (°C). Inferno (ASHES) shows stable ~285–310°C across both deployments. "
-        "Hell and El Guapo (International District) show greater variability, with El Guapo "
+        "Hell (ID) and El Guapo (International District) show greater variability, with El Guapo "
         "exhibiting dramatic swings (100–315°C). El Guapo Top is the hottest and most stable (~341°C). "
-        "Vertical dashed line marks deployment change (June 2024)."
+        "Vertical dashed line marks Chadwick cruise (June 2024)."
     )
     add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
 
@@ -749,7 +750,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     POSTER_STYLE = {
         ("Inferno", "2022-2024"):      {"color": "#D55E00", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "Inferno (ASHES, 22–24)"},
         ("Inferno", "2024-2025"):      {"color": "#D55E00", "ls": "--", "lw": POSTER_LINE_WIDTH, "label": "Inferno (ASHES, 24–25)"},
-        ("Hell", "2022-2024"):         {"color": "#E69F00", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "Hell (ID, 22–24)"},
+        ("Hell (ID)", "2022-2024"):    {"color": "#E69F00", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "Hell (ID, 22–24)"},
         ("El Guapo", "2022-2024"):     {"color": "#0072B2", "ls": "-",  "lw": POSTER_LINE_WIDTH, "label": "El Guapo (ID, 22–24)"},
         ("El Guapo (Top)", "2024-2025"): {"color": "#56B4E9", "ls": "--", "lw": POSTER_LINE_WIDTH, "label": "El Guapo Top (ID, 24–25)"},
     }
