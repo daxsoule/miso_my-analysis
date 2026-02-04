@@ -88,16 +88,6 @@ INSTRUMENTS = [
     },
     # 2024-2025 deployment (mostly ASHES)
     {
-        "file": DATA_2024 / "HiT_2023-002_Axial_2024_Deployment.csv",
-        "instrument": "MISO 2023-002",
-        "vent": "Hell",
-        "field": "ASHES",
-        "deployment": "2024-2025",
-        "format": "hit_A",  # idx#,DateTime,J-Type,IntTemp,...
-        "temp_col": "J-Type",
-        "date_col": "DateTime",
-    },
-    {
         "file": DATA_2024 / "HiT_2023-005_Axial_2024_Deployment_0.csv",
         "instrument": "MISO 2023-005",
         "vent": "Inferno",
@@ -105,6 +95,16 @@ INSTRUMENTS = [
         "deployment": "2024-2025",
         "format": "hit_B",  # idx,DateTime,Temp,RefTempC,...
         "temp_col": "Temp",
+        "date_col": "DateTime",
+    },
+    {
+        "file": DATA_2024 / "HiT_2023-002_Axial_2024_Deployment.csv",
+        "instrument": "MISO 2023-002",
+        "vent": "Hell",
+        "field": "ASHES",
+        "deployment": "2024-2025",
+        "format": "hit_A",  # idx#,DateTime,J-Type,IntTemp,...
+        "temp_col": "J-Type",
         "date_col": "DateTime",
     },
     {
@@ -565,9 +565,26 @@ def compute_summary(records):
 
 
 def fig_survey_overview(records, fig_path):
-    """Figure 1: All instruments as subplots (skip records with no deployed data)."""
+    """Figure 1: All vents as subplots, combining deployments on same panel."""
     plotable = [r for r in records if r[r["deployed"]].shape[0] > 0]
-    n = len(plotable)
+
+    # Group records by vent name
+    from collections import defaultdict
+    vent_groups = defaultdict(list)
+    for rec in plotable:
+        vent_groups[rec.attrs["vent"]].append(rec)
+
+    # Sort vents: ASHES first, then International District
+    # Get field for each vent (use first record's field)
+    def vent_sort_key(vent_name):
+        field = vent_groups[vent_name][0].attrs["field"]
+        # ASHES = 0, International District = 1
+        field_order = 0 if field == "ASHES" else 1
+        return (field_order, vent_name)
+
+    sorted_vents = sorted(vent_groups.keys(), key=vent_sort_key)
+
+    n = len(sorted_vents)
     fig, axes = plt.subplots(n, 1, figsize=(10, 2.5 * n), dpi=POSTER_DPI, sharex=True)
     fig.subplots_adjust(bottom=0.08, top=0.95)
     if n == 1:
@@ -584,24 +601,39 @@ def fig_survey_overview(records, fig_path):
     xmin = min(all_starts) - pd.Timedelta(days=45)
     xmax = max(all_ends) + pd.Timedelta(days=45)
 
-    for ax, rec in zip(axes, plotable):
-        deployed = rec[rec["deployed"]]
-        vent = rec.attrs["vent"]
-        dep = rec.attrs["deployment"]
-        color = VENT_COLORS.get(vent, "#333333")
-        # Abbreviated labels: ID = International District, 22-24 = 2022-2024
-        field_abbr = "ID" if rec.attrs["field"] == "International District" else rec.attrs["field"]
-        dep_abbr = dep.replace("2022-2024", "22–24").replace("2024-2025", "24–25")
-        label = f"{vent} ({field_abbr}, {dep_abbr})"
+    # Line styles for different deployments
+    DEPLOY_STYLES = {
+        "2022-2024": {"ls": "-", "lw": POSTER_LINE_WIDTH},
+        "2024-2025": {"ls": "--", "lw": POSTER_LINE_WIDTH},
+    }
 
-        daily = deployed["temperature"].resample("D").mean()
-        ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH)
+    for ax, vent in zip(axes, sorted_vents):
+        recs = vent_groups[vent]
+        field = recs[0].attrs["field"]
+        field_abbr = "ID" if field == "International District" else field
+        color = VENT_COLORS.get(vent, "#333333")
+
+        for rec in recs:
+            deployed = rec[rec["deployed"]]
+            dep = rec.attrs["deployment"]
+            dep_abbr = dep.replace("2022-2024", "22–24").replace("2024-2025", "24–25")
+            style = DEPLOY_STYLES.get(dep, {"ls": "-", "lw": POSTER_LINE_WIDTH})
+
+            daily = deployed["temperature"].resample("D").mean()
+            ax.plot(daily.index, daily.values, color=color,
+                    linestyle=style["ls"], linewidth=style["lw"],
+                    label=dep_abbr, alpha=0.85)
+
         ax.set_ylabel("°C", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        ax.set_title(label, fontsize=POSTER_LABEL_SIZE, fontweight="bold", loc="left")
+        ax.set_title(f"{vent} ({field_abbr})", fontsize=POSTER_LABEL_SIZE, fontweight="bold", loc="left")
         ax.grid(True, alpha=0.3)
         ax.tick_params(labelsize=POSTER_TICK_SIZE)
         ax.set_xlim(xmin, xmax)
         set_spine_width(ax)
+
+        # Add legend if multiple deployments
+        if len(recs) > 1:
+            ax.legend(loc="upper right", fontsize=POSTER_LEGEND_SIZE - 2, frameon=True, framealpha=0.9)
 
     axes[-1].set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     # Clean date formatting (6-month intervals)
@@ -614,7 +646,7 @@ def fig_survey_overview(records, fig_path):
         ax.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
         # Add text annotation on first panel only
         if i == 0:
-            ax.annotate("Deployment\nchange", xy=(deploy_change, ax.get_ylim()[1]),
+            ax.annotate("Chadwick\ncruise", xy=(deploy_change, ax.get_ylim()[1]),
                         xytext=(-5, -5), textcoords="offset points",
                         fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top", ha="right")
 
@@ -623,12 +655,10 @@ def fig_survey_overview(records, fig_path):
 
     # Figure caption
     caption = (
-        "Daily mean vent temperatures from all MISO deployments at Axial Seamount (2022–2025). "
-        "Each panel shows one instrument; y-axis is temperature (°C). "
-        "Abbreviations: ID = International District, ASHES = vent field name. "
-        "High-temp vents (Inferno, Hell, El Guapo) maintain 250–340°C. "
-        "Intermittent vents (Virgin, Trevi) show cooling trends. "
-        "Vertical dotted line marks deployment change (June 2024)."
+        "Daily mean vent temperatures from MISO deployments at Axial Seamount (2022–2025). "
+        "Each panel shows one vent; solid lines = 2022–2024, dashed = 2024–2025. "
+        "ASHES vents shown first, then International District (ID). "
+        "Vertical dotted line marks Chadwick cruise (June 2024)."
     )
     # Add caption at the very bottom of the figure
     fig.text(0.5, 0.01, caption, ha="center", va="bottom", fontsize=POSTER_CAPTION_SIZE - 2,
