@@ -815,11 +815,11 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
             ypad = (tmpsf_visible.max() - tmpsf_visible.min()) * 0.1
             ax3.set_ylim(tmpsf_visible.min() - ypad, tmpsf_visible.max() + ypad)
 
-        # Deployment change annotation on TMPSF panel
-        deploy_change = pd.Timestamp("2024-06-26")  # ~when 2022-2024 ended, 2024-2025 began
-        if xmin <= deploy_change <= xmax:
-            ax3.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
-            ax3.annotate("Deployment\nchange", xy=(deploy_change, tmpsf_visible.max()),
+        # VISIONS cruise annotation on TMPSF panel (OOI servicing, Sept 2024)
+        visions_cruise = pd.Timestamp("2024-09-12")
+        if xmin <= visions_cruise <= xmax:
+            ax3.axvline(visions_cruise, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
+            ax3.annotate("VISIONS\ncruise", xy=(visions_cruise, tmpsf_visible.max()),
                          xytext=(5, -5), textcoords="offset points",
                          fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top")
     else:
@@ -828,10 +828,13 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         ax1.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
         ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
 
-    # Deployment change annotation on main panel
-    deploy_change = pd.Timestamp("2024-06-26")
-    if xmin <= deploy_change <= xmax:
-        ax1.axvline(deploy_change, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
+    # Chadwick cruise annotation on main panel (MISO servicing, June 2024)
+    chadwick_cruise = pd.Timestamp("2024-06-26")
+    if xmin <= chadwick_cruise <= xmax:
+        ax1.axvline(chadwick_cruise, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
+        ax1.annotate("Chadwick\ncruise", xy=(chadwick_cruise, ax1.get_ylim()[1]),
+                     xytext=(-5, -5), textcoords="offset points",
+                     fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top", ha="right")
 
     # Legend in lower right, to the right of deployment change line (vertical)
     ax1.legend(all_lines, all_labels,
@@ -853,8 +856,8 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         "(a) Daily mean focused vent temperatures (°C) from high-temperature vents at "
         "Axial Seamount with differential seafloor uplift (cm, right axis). "
         "(b) TMPSF diffuse flow temperature (°C) from ASHES field hot channels (excl. ch06). "
-        "Vertical dashed line marks deployment change (June 2024). Inferno and El Guapo "
-        "show continuity across deployments. BPR shows steady inflation through 2025."
+        "Vertical lines mark Chadwick cruise (June 2024, MISO servicing) and VISIONS cruise "
+        "(Sept 2024, OOI/TMPSF servicing). BPR shows steady inflation through 2025."
     )
     caption_ax = fig.add_axes([0.05, 0.01, 0.9, 0.13])
     caption_ax.axis("off")
