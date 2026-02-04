@@ -183,18 +183,10 @@ HISTORICAL_INSTRUMENTS = [
 # --- 2015-2019 instruments (pre-inflation period) ---
 INSTRUMENTS_2015_2019 = [
     {
-        "file": DATA_HISTORICAL / "castle" / "castle_2001-2022.csv",
-        "instrument": "Castle combined",
-        "vent": "Castle",
-        "field": "ASHES",
-        "deployment": "2015-2019",
-        "format": "castle_csv",
-    },
-    {
         "file": DATA_HISTORICAL / "vixen" / "MISO103-Chip1-Axial-2015-Vixen.txt",
         "instrument": "MISO 103",
         "vent": "Vixen",
-        "field": "ASHES",
+        "field": "Coquille",
         "deployment": "2015-2019",
         "format": "miso_historical_tab",
     },
@@ -437,42 +429,49 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
 
 
 def fig_2015_2019(records, fig_path, eruption_date=None):
-    """Figure: Castle, Vixen, Trevi temperatures spanning 2015-2019 (includes April 2015 eruption)."""
+    """Figure: Vixen and Trevi temperatures spanning 2015-2019 (includes April 2015 eruption)."""
     # Create figure with space for caption below
     fig = plt.figure(figsize=(10, 8), dpi=POSTER_DPI)
     ax = fig.add_axes([0.1, 0.28, 0.85, 0.62])
 
-    # Time window
-    time_start = pd.Timestamp("2015-01-01")
-    time_end = pd.Timestamp("2019-01-01")
+    # Find actual data range
+    all_starts = []
+    all_ends = []
+    for rec in records:
+        deployed = rec[rec["deployed"]]
+        if len(deployed) > 0:
+            all_starts.append(deployed.index.min())
+            all_ends.append(deployed.index.max())
 
     for rec in records:
         deployed = rec[rec["deployed"]]
-        # Filter to time window
-        deployed = deployed[(deployed.index >= time_start) & (deployed.index <= time_end)]
         if len(deployed) == 0:
             continue
 
         vent = rec.attrs["vent"]
+        field = rec.attrs["field"]
         color = VENT_COLORS.get(vent, "#333333")
-        label = f"{vent}"
+        label = f"{vent} ({field})"
         daily = deployed["temperature"].resample("D").mean()
         ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
 
     ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax.set_title("ASHES Vent Temperatures (2015–2019)\nAxial Seamount", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+    ax.set_title("Vent Temperatures After the April 2015 Eruption\nAxial Seamount", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
     set_spine_width(ax)
 
-    # Clean date formatting - 6 month intervals
-    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
+    # Set x-axis limits with balanced padding (based on actual data)
+    if all_starts:
+        xmin = min(all_starts) - pd.Timedelta(days=45)
+        xmax = max(all_ends) + pd.Timedelta(days=45)
+        ax.set_xlim(xmin, xmax)
+
+    # Clean date formatting - 4 month intervals for ~2 year span
+    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=4))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
     plt.setp(ax.xaxis.get_majorticklabels(), rotation=0, ha="center")
-
-    # Set x-axis limits with balanced padding
-    ax.set_xlim(left=time_start - pd.Timedelta(days=45), right=time_end + pd.Timedelta(days=45))
 
     # Legend in upper right
     ax.legend(loc="upper right", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
@@ -486,10 +485,9 @@ def fig_2015_2019(records, fig_path, eruption_date=None):
 
     # Figure caption
     caption = (
-        "Daily mean vent temperatures from Castle, Vixen, and Trevi vents (ASHES field) spanning 2015–2019. "
-        "Y-axis: temperature (°C); x-axis: date. Colors distinguish Castle (green), Vixen (purple), and Trevi (orange). "
-        "The April 24, 2015 eruption is marked. Castle shows stable high temperatures (~260°C); "
-        "Vixen and Trevi show lower, more variable temperatures (~150–200°C)."
+        "Vent temperatures following the April 24, 2015 Axial Seamount eruption. "
+        "Y-axis: temperature (°C); x-axis: date. Vixen (purple, Coquille field) and Trevi (orange, ASHES field). "
+        "Deployments began ~4 months post-eruption. Both vents show variable temperatures (~150–300°C)."
     )
     add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
 
@@ -978,8 +976,8 @@ def main():
         fig_historical_eruption(historical_records, FIG_DIR / "eruption_2011_casper_diva.png",
                                 eruption_date=eruption_date)
 
-    # Load and plot 2015-2019 data (Castle, Vixen, Trevi)
-    print("\nLoading 2015-2019 instruments (Castle, Vixen, Trevi)...")
+    # Load and plot 2015-2019 data (Vixen, Trevi)
+    print("\nLoading 2015-2019 instruments (Vixen, Trevi)...")
     records_2015 = []
     for config in INSTRUMENTS_2015_2019:
         vent = config["vent"]
@@ -1002,7 +1000,7 @@ def main():
 
     if records_2015:
         eruption_2015 = pd.Timestamp("2015-04-24")  # April 2015 eruption
-        fig_2015_2019(records_2015, FIG_DIR / "ashes_2015_2019_castle_vixen_trevi.png",
+        fig_2015_2019(records_2015, FIG_DIR / "eruption_2015_vixen_trevi.png",
                       eruption_date=eruption_2015)
 
     print("\nDone!")
