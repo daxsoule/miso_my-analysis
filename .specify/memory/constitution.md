@@ -172,6 +172,9 @@ merged = bpr.join(eq, how='inner').join(tmpsf, how='inner')
 - **Color palette**: Magma (colorblind-safe), consistent with sibling projects
 - **Dimensions**: 7" width (double column)
 - **Required elements**: Axis labels with units, timestamps, vent field labels
+- **Organization**: All figures must go in one of two folders:
+  - `outputs/figures/poster/` — Publication-ready figures for presentations and papers
+  - `outputs/figures/exploratory/` — Working figures for data exploration and analysis
 
 ## Quality Checks
 
@@ -203,7 +206,8 @@ miso_my-analysis/
     ├── data/
     │   └── vent_temperature_*.parquet
     ├── figures/
-    │   └── temperature_timeseries_*.png
+    │   ├── poster/                    # Publication-ready figures
+    │   └── exploratory/               # Working/analysis figures
     └── notebooks/
         ├── README.md
         ├── miso_analysis.ipynb
