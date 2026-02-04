@@ -166,7 +166,7 @@ HISTORICAL_INSTRUMENTS = [
         "file": DATA_HISTORICAL / "casper" / "MISO104-Chip1-Axial-2010-Casper.txt",
         "instrument": "MISO 104",
         "vent": "Casper",
-        "field": "ASHES",
+        "field": "Coquille",
         "deployment": "2010-2011",
         "format": "miso_historical_tab",
     },
@@ -174,7 +174,7 @@ HISTORICAL_INSTRUMENTS = [
         "file": DATA_HISTORICAL / "diva" / "MISO129-Chip1-Axial-2010-Diva.txt",
         "instrument": "MISO 129",
         "vent": "Diva",
-        "field": "ASHES",
+        "field": "International District",
         "deployment": "2010-2011",
         "format": "miso_historical_tab",
     },
@@ -385,8 +385,11 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
     for rec in records:
         deployed = rec[rec["deployed"]]
         vent = rec.attrs["vent"]
+        field = rec.attrs["field"]
+        # Abbreviate International District
+        field_abbr = "ID" if field == "International District" else field
         color = VENT_COLORS.get(vent, "#333333")
-        label = f"{vent}"
+        label = f"{vent} ({field_abbr})"
         daily = deployed["temperature"].resample("D").mean()
         daily = daily[daily.index <= data_end]  # Trim to local max
         ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
@@ -422,9 +425,9 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
     # Figure caption (20pt font for poster)
     caption = (
         "Vent temperatures spanning the April 6, 2011 Axial Seamount eruption. "
-        "Y-axis: temperature (°C); x-axis: date. Colors distinguish Casper (blue) and Diva (orange) vents in ASHES field. "
-        "Both vents maintained stable temperatures (~310–320°C) for 7 months pre-eruption. "
-        "Diva dropped ~70°C immediately post-eruption with gradual recovery; Casper remained stable throughout."
+        "Y-axis: temperature (°C); x-axis: date. Casper (blue, Coquille field) and Diva (orange, International District). "
+        "Both vents responded with immediate temperature drops post-eruption and gradual recovery on similar timescales. "
+        "Diva's response (~70°C drop) was stronger than Casper's (~10°C drop)."
     )
     add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
 
