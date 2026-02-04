@@ -30,6 +30,7 @@ Note: "Hell" exists as distinct vents in both ASHES and International District.
 | Vent Field | Latitude | Longitude | Depth (m) |
 |------------|----------|-----------|-----------|
 | ASHES | 45° 56.0186'N | 130° 00.8203'W | 1540 |
+| CASM | 45° 59.332'N | 130° 1.632'W | 1580 |
 | Coquille | 45° 55.0448'N | 129° 59.5793'W | 1538 |
 | International District | 45° 55.5786'N | 129° 58.7394'W | 1522 |
 | Trevi | 45° 56.777'N | 129° 59.023'W | 1520 |
@@ -39,6 +40,7 @@ Decimal degrees (for code):
 | Vent Field | Lat (°N) | Lon (°W) | Depth (m) |
 |------------|----------|----------|-----------|
 | ASHES | 45.9336 | -130.0137 | 1540 |
+| CASM | 45.9889 | -130.0272 | 1580 |
 | Coquille | 45.9174 | -129.9930 | 1538 |
 | International District | 45.9263 | -129.9790 | 1522 |
 | Trevi | 45.9463 | -129.9838 | 1520 |
