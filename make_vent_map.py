@@ -16,8 +16,18 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LightSource
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, FancyArrowPatch, ConnectionPatch
+from matplotlib.ticker import FuncFormatter
 import matplotlib.patches as mpatches
 from pathlib import Path
+
+
+def format_lon(x, pos):
+    """Format longitude labels without scientific notation."""
+    return f'{x:.3f}'
+
+def format_lat(x, pos):
+    """Format latitude labels without scientific notation."""
+    return f'{x:.3f}'
 
 # Paths
 BATHY_PATH = Path("/home/jovyan/my_data/axial/axial_bathy/MBARI_AxialSeamount_V2506_AUV_Summit_AUVOverShip_Topo1mSq.grd")
@@ -129,7 +139,7 @@ def load_bathymetry(path: Path, subsample: int = 1, extent: dict = None) -> tupl
     return lon, lat, z
 
 
-def plot_shaded_relief(ax, lon, lat, z, extent=None, add_contours=True):
+def plot_shaded_relief(ax, lon, lat, z, extent=None, add_contours=True, contour_labels=True):
     """Plot shaded relief on an axis."""
     ls = LightSource(azdeg=315, altdeg=45)
     z_min, z_max = np.nanpercentile(z, [2, 98])
@@ -145,12 +155,285 @@ def plot_shaded_relief(ax, lon, lat, z, extent=None, add_contours=True):
         contour_levels = np.arange(-2200, -1400, 50)
         cs = ax.contour(lon_grid, lat_grid, z, levels=contour_levels,
                         colors='black', linewidths=0.3, alpha=0.5)
+        if contour_labels:
+            ax.clabel(cs, levels=contour_levels[::2], fontsize=7, fmt='%d m', inline=True)
 
     if extent:
         ax.set_xlim(extent['lon_min'], extent['lon_max'])
         ax.set_ylim(extent['lat_min'], extent['lat_max'])
 
     return z_min, z_max
+
+
+def plot_site_map(lon, lat, z, output_path: Path):
+    """Create general site map showing all vent fields including CASM."""
+
+    print("Creating site overview map...")
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    # Plot shaded relief with contours
+    z_min, z_max = plot_shaded_relief(ax, lon, lat, z, add_contours=True, contour_labels=True)
+
+    # All vent fields including CASM
+    all_vent_fields = {
+        "ASHES": {"lon": -(130 + 0.8203/60), "lat": 45 + 56.0186/60},
+        "Coquille": {"lon": -(129 + 59.5793/60), "lat": 45 + 55.0448/60},
+        "Int'l District": {"lon": -(129 + 58.7394/60), "lat": 45 + 55.5786/60},
+        "Trevi": {"lon": -(129 + 59.023/60), "lat": 45 + 56.777/60},
+        "CASM": {"lon": -(130 + 1.632/60), "lat": 45 + 59.332/60},
+    }
+
+    # Label offsets for each field
+    label_offsets = {
+        "ASHES": (-65, 5),
+        "Coquille": (10, -15),
+        "Int'l District": (10, 5),
+        "Trevi": (10, 5),
+        "CASM": (10, 5),
+    }
+
+    # Plot vent field markers
+    for field_name, field_info in all_vent_fields.items():
+        ax.plot(field_info['lon'], field_info['lat'], 's', markersize=14,
+                color='yellow', markeredgecolor='black', markeredgewidth=2, zorder=8)
+
+        offset = label_offsets.get(field_name, (10, 5))
+        ax.annotate(field_name, (field_info['lon'], field_info['lat']),
+                    xytext=offset, textcoords='offset points',
+                    fontsize=11, fontweight='bold', style='italic',
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow',
+                             alpha=0.9, edgecolor='black', linewidth=1),
+                    zorder=11)
+
+    # Add colorbar
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.terrain,
+                                norm=plt.Normalize(vmin=z_min, vmax=z_max))
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ax=ax, shrink=0.7, pad=0.02)
+    cbar.set_label('Depth (m)', fontsize=11)
+
+    # Scale bar (1 km)
+    scale_lon = lon.min() + 0.005
+    scale_lat = lat.min() + 0.005
+    scale_length = 1.0 * LON_PER_KM
+    ax.plot([scale_lon, scale_lon + scale_length], [scale_lat, scale_lat],
+            'k-', linewidth=4)
+    ax.text(scale_lon + scale_length/2, scale_lat + 0.003, '1 km',
+            ha='center', fontsize=10, fontweight='bold',
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
+
+    # Legend
+    legend_elements = [
+        Line2D([0], [0], marker='s', color='w', markerfacecolor='yellow',
+               markersize=14, markeredgecolor='black', markeredgewidth=2,
+               label='Vent Field'),
+    ]
+    ax.legend(handles=legend_elements, loc='lower right', fontsize=10, framealpha=0.95)
+
+    ax.set_xlabel('Longitude', fontsize=11)
+    ax.set_ylabel('Latitude', fontsize=11)
+    ax.set_title('Axial Seamount Caldera\nHydrothermal Vent Fields', fontsize=14, fontweight='bold')
+    ax.grid(True, alpha=0.3, linestyle='--', color='white')
+
+    plt.tight_layout()
+
+    output_file = output_path / "map_site_overview.png"
+    plt.savefig(output_file, dpi=300, facecolor='white', bbox_inches='tight')
+    plt.close()
+    print(f"Saved: {output_file}")
+    return output_file
+
+
+def plot_ashes_map(lon, lat, z, output_path: Path):
+    """Create detailed ASHES vent field map."""
+
+    print("Creating ASHES detail map...")
+
+    # ASHES extent (~150m around cluster center)
+    center_lon, center_lat = -130.0136, 45.9335
+    half_size = 0.002  # ~150m
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    extent = {
+        'lon_min': center_lon - half_size,
+        'lon_max': center_lon + half_size,
+        'lat_min': center_lat - half_size,
+        'lat_max': center_lat + half_size,
+    }
+
+    plot_shaded_relief(ax, lon, lat, z, extent=extent, add_contours=False)
+
+    # ASHES vents
+    ashes_vents = ["Inferno", "Hell", "Virgin", "Phoenix"]
+
+    # Label positions (in data coordinates, offset from vent)
+    label_positions = {
+        "Inferno": (0.0007, 0.0007),
+        "Hell": (-0.0012, -0.0005),
+        "Virgin": (0.0007, -0.0003),
+        "Phoenix": (-0.0012, 0.0003),
+    }
+
+    for name in ashes_vents:
+        if name in VENTS:
+            info = VENTS[name]
+            color = VENT_TYPE_COLORS[info['type']]
+
+            ax.plot(info['lon'], info['lat'], 'o', markersize=14,
+                   color=color, markeredgecolor='white', markeredgewidth=2, zorder=8)
+
+            dx, dy = label_positions.get(name, (0.0007, 0.0007))
+            ax.annotate(
+                name, (info['lon'], info['lat']),
+                xytext=(info['lon'] + dx, info['lat'] + dy),
+                textcoords='data',
+                fontsize=11, fontweight='bold',
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                         alpha=0.95, edgecolor='gray', linewidth=1),
+                arrowprops=dict(arrowstyle='->', color='black', lw=1.5,
+                               connectionstyle='arc3,rad=0.1'),
+                zorder=11
+            )
+
+    # Scale bar (50m)
+    scale_m = 50
+    scale_deg = scale_m / 77000
+    scale_x = extent['lon_min'] + 0.0003
+    scale_y = extent['lat_min'] + 0.0003
+    ax.plot([scale_x, scale_x + scale_deg], [scale_y, scale_y], 'k-', linewidth=4)
+    ax.text(scale_x + scale_deg/2, scale_y + 0.00025, f'{scale_m} m',
+            ha='center', fontsize=10, fontweight='bold',
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
+
+    # Legend
+    legend_elements = [
+        Line2D([0], [0], marker='o', color='w',
+               markerfacecolor=VENT_TYPE_COLORS['high-temp'],
+               markersize=12, markeredgecolor='white', markeredgewidth=1.5,
+               label='High-temp (>200°C)'),
+        Line2D([0], [0], marker='o', color='w',
+               markerfacecolor=VENT_TYPE_COLORS['intermittent'],
+               markersize=12, markeredgecolor='white', markeredgewidth=1.5,
+               label='Intermittent'),
+        Line2D([0], [0], marker='o', color='w',
+               markerfacecolor=VENT_TYPE_COLORS['low-temp'],
+               markersize=12, markeredgecolor='white', markeredgewidth=1.5,
+               label='Low-temp (<100°C)'),
+    ]
+    ax.legend(handles=legend_elements, loc='lower right', fontsize=9, framealpha=0.95)
+
+    ax.set_xlabel('Longitude', fontsize=11)
+    ax.set_ylabel('Latitude', fontsize=11)
+    ax.set_title('ASHES Vent Field\nMISO Sensor Locations', fontsize=14, fontweight='bold')
+
+    # Format axis labels without scientific notation
+    ax.xaxis.set_major_formatter(FuncFormatter(format_lon))
+    ax.yaxis.set_major_formatter(FuncFormatter(format_lat))
+
+    plt.tight_layout()
+
+    output_file = output_path / "map_ashes_detail.png"
+    plt.savefig(output_file, dpi=300, facecolor='white', bbox_inches='tight')
+    plt.close()
+    print(f"Saved: {output_file}")
+    return output_file
+
+
+def plot_intl_district_map(lon, lat, z, output_path: Path):
+    """Create detailed International District vent field map."""
+
+    print("Creating Int'l District detail map...")
+
+    # Int'l District extent (~150m around cluster center)
+    center_lon, center_lat = -129.9795, 45.9263
+    half_size = 0.002  # ~150m
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    extent = {
+        'lon_min': center_lon - half_size,
+        'lon_max': center_lon + half_size,
+        'lat_min': center_lat - half_size,
+        'lat_max': center_lat + half_size,
+    }
+
+    plot_shaded_relief(ax, lon, lat, z, extent=extent, add_contours=False)
+
+    # Int'l District vents
+    intl_vents = ["El Guapo", "Tiny Tower", "Castle"]
+
+    # Label positions
+    label_positions = {
+        "El Guapo": (0.0008, 0.0006),
+        "Tiny Tower": (-0.0013, 0.0002),
+        "Castle": (0.0007, -0.0006),
+    }
+
+    for name in intl_vents:
+        if name in VENTS:
+            info = VENTS[name]
+            color = VENT_TYPE_COLORS[info['type']]
+
+            ax.plot(info['lon'], info['lat'], 'o', markersize=14,
+                   color=color, markeredgecolor='white', markeredgewidth=2, zorder=8)
+
+            dx, dy = label_positions.get(name, (0.0007, 0.0007))
+            ax.annotate(
+                name, (info['lon'], info['lat']),
+                xytext=(info['lon'] + dx, info['lat'] + dy),
+                textcoords='data',
+                fontsize=11, fontweight='bold',
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                         alpha=0.95, edgecolor='gray', linewidth=1),
+                arrowprops=dict(arrowstyle='->', color='black', lw=1.5,
+                               connectionstyle='arc3,rad=0.1'),
+                zorder=11
+            )
+
+    # Scale bar (50m)
+    scale_m = 50
+    scale_deg = scale_m / 77000
+    scale_x = extent['lon_min'] + 0.0003
+    scale_y = extent['lat_min'] + 0.0003
+    ax.plot([scale_x, scale_x + scale_deg], [scale_y, scale_y], 'k-', linewidth=4)
+    ax.text(scale_x + scale_deg/2, scale_y + 0.00025, f'{scale_m} m',
+            ha='center', fontsize=10, fontweight='bold',
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
+
+    # Legend
+    legend_elements = [
+        Line2D([0], [0], marker='o', color='w',
+               markerfacecolor=VENT_TYPE_COLORS['high-temp'],
+               markersize=12, markeredgecolor='white', markeredgewidth=1.5,
+               label='High-temp (>200°C)'),
+        Line2D([0], [0], marker='o', color='w',
+               markerfacecolor=VENT_TYPE_COLORS['intermittent'],
+               markersize=12, markeredgecolor='white', markeredgewidth=1.5,
+               label='Intermittent'),
+        Line2D([0], [0], marker='o', color='w',
+               markerfacecolor=VENT_TYPE_COLORS['low-temp'],
+               markersize=12, markeredgecolor='white', markeredgewidth=1.5,
+               label='Low-temp (<100°C)'),
+    ]
+    ax.legend(handles=legend_elements, loc='lower right', fontsize=9, framealpha=0.95)
+
+    ax.set_xlabel('Longitude', fontsize=11)
+    ax.set_ylabel('Latitude', fontsize=11)
+    ax.set_title("International District Vent Field\nMISO Sensor Locations", fontsize=14, fontweight='bold')
+
+    # Format axis labels without scientific notation
+    ax.xaxis.set_major_formatter(FuncFormatter(format_lon))
+    ax.yaxis.set_major_formatter(FuncFormatter(format_lat))
+
+    plt.tight_layout()
+
+    output_file = output_path / "map_intl_district_detail.png"
+    plt.savefig(output_file, dpi=300, facecolor='white', bbox_inches='tight')
+    plt.close()
+    print(f"Saved: {output_file}")
+    return output_file
 
 
 def plot_vent_map(lon, lat, z, output_path: Path):
@@ -397,7 +680,7 @@ def plot_vent_map(lon, lat, z, output_path: Path):
 
 def main():
     print("=" * 60)
-    print("MISO Vent Location Map")
+    print("MISO Vent Location Maps")
     print("=" * 60)
 
     # Print vent summary
@@ -422,8 +705,15 @@ def main():
     # Load bathymetry
     lon, lat, z = load_bathymetry(BATHY_PATH, subsample=1, extent=extent)
 
-    # Create map
-    output_file = plot_vent_map(lon, lat, z, OUTPUT_DIR)
+    # Create three standalone maps
+    print("\n--- Generating standalone maps ---\n")
+    plot_site_map(lon, lat, z, OUTPUT_DIR)
+    plot_ashes_map(lon, lat, z, OUTPUT_DIR)
+    plot_intl_district_map(lon, lat, z, OUTPUT_DIR)
+
+    # Also create combined multi-panel map
+    print("\n--- Generating combined multi-panel map ---\n")
+    plot_vent_map(lon, lat, z, OUTPUT_DIR)
 
     print("\nDone!")
 
