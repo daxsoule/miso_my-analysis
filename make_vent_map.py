@@ -20,63 +20,69 @@ from pathlib import Path
 BATHY_PATH = Path("/home/jovyan/my_data/axial/axial_bathy/MBARI_AxialSeamount_V2506_AUV_Summit_AUVOverShip_Topo1mSq.grd")
 OUTPUT_DIR = Path("/home/jovyan/repos/specKitScience/miso_my-analysis/outputs/figures/poster")
 
-# Vent field coordinates (from constitution)
+# Vent field coordinates (from user-provided table)
+# Format: degrees + minutes/60
 VENT_FIELDS = {
-    "ASHES": {"lon": -130.0137, "lat": 45.9336},
-    "Int'l District": {"lon": -129.9790, "lat": 45.9263},
-    "Coquille": {"lon": -129.9930, "lat": 45.9174},
-    "Trevi": {"lon": -129.9838, "lat": 45.9463},
+    "ASHES": {"lon": -(130 + 0.8203/60), "lat": 45 + 56.0186/60, "depth": 1540},      # 45°56.0186'N, 130°00.8203'W
+    "Coquille": {"lon": -(129 + 59.5793/60), "lat": 45 + 55.0448/60, "depth": 1538},  # 45°55.0448'N, 129°59.5793'W
+    "Int'l District": {"lon": -(129 + 58.7394/60), "lat": 45 + 55.5786/60, "depth": 1522},  # 45°55.5786'N, 129°58.7394'W
+    "Trevi": {"lon": -(129 + 59.023/60), "lat": 45 + 56.777/60, "depth": 1520},       # 45°56.777'N, 129°59.023'W
 }
 
 # Individual MISO vent locations
-# Coordinates are approximate - placed within vent fields with small offsets
+# Coordinates are approximate - placed within vent fields with small offsets for label clarity
 # At 46°N: 100m ≈ 0.0009° lat, 100m ≈ 0.0013° lon
+# ASHES field center: 45.9336°N, -130.0137°W
+# Int'l District center: 45.9263°N, -129.9790°W
+# Trevi field center: 45.9463°N, -129.9838°W
 VENTS = {
     # ASHES field vents - spread out for label clarity
     "Inferno": {
-        "lon": -130.0155, "lat": 45.9350,
+        "lon": -130.0150, "lat": 45.9345,
         "field": "ASHES", "deployment": "2022-2025",
         "temp": "~285-310°C", "type": "high-temp"
     },
     "Hell (ASHES)": {
-        "lon": -130.0150, "lat": 45.9325,
+        "lon": -130.0145, "lat": 45.9320,
         "field": "ASHES", "deployment": "2024-2025",
         "temp": "~57°C", "type": "low-temp"
     },
     "Virgin": {
-        "lon": -130.0165, "lat": 45.9335,
+        "lon": -130.0160, "lat": 45.9330,
         "field": "ASHES", "deployment": "2024-2025",
         "temp": "~50-290°C", "type": "intermittent"
     },
-    "Trevi": {
-        "lon": -129.9838, "lat": 45.9463,
-        "field": "ASHES", "deployment": "2024-2025",
-        "temp": "~135°C", "type": "intermittent"
-    },
     "Vixen": {
-        "lon": -130.0135, "lat": 45.9355,
+        "lon": -130.0130, "lat": 45.9350,
         "field": "ASHES", "deployment": "2024-2025",
         "temp": "N/A", "type": "low-temp"
     },
-    # CASM vent field (45°59.332'N, 130°1.632'W)
+    # Trevi vent field (separate from ASHES): 45°56.777'N, 129°59.023'W
+    "Trevi": {
+        "lon": -(129 + 59.023/60), "lat": 45 + 56.777/60,
+        "field": "Trevi", "deployment": "2024-2025",
+        "temp": "~135°C", "type": "intermittent"
+    },
+    # CASM vent field: 45°59.332'N, 130°1.632'W
     "CASM": {
         "lon": -(130 + 1.632/60), "lat": 45 + 59.332/60,
         "field": "CASM", "deployment": "historical",
         "temp": "N/A", "type": "high-temp"
     },
     # International District vents - spread out for label clarity
+    # Field center: 45.9263°N, -129.9790°W
     "Hell (ID)": {
-        "lon": -129.9810, "lat": 45.9280,
+        "lon": -129.9805, "lat": 45.9275,
         "field": "Int'l District", "deployment": "2022-2024",
         "temp": "~305°C", "type": "high-temp"
     },
     "El Guapo": {
-        "lon": -129.9800, "lat": 45.9250,
+        "lon": -129.9795, "lat": 45.9250,
         "field": "Int'l District", "deployment": "2022-2024",
         "temp": "~100-315°C", "type": "high-temp"
     },
     "El Guapo (Top)": {
-        "lon": -129.9755, "lat": 45.9265,
+        "lon": -129.9760, "lat": 45.9265,
         "field": "Int'l District", "deployment": "2024-2025",
         "temp": "~341°C", "type": "high-temp"
     },
