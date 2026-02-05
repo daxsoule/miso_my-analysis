@@ -106,9 +106,11 @@ belong in the paper.
 
 ### 2. OOI Bottom Pressure Recorder Data (from sibling project)
 
-- **Description**: Differential uplift time series
+- **Description**: Differential uplift time series (MJ03F - MJ03E)
 - **Path**: `../my-analysis_botpt/outputs/data/differential_uplift_*.parquet`
 - **Temporal coverage**: 2015-01-01 to 2026-01-16
+- **Depth source**: Uses OOI's `botsflu_meandepth` variable (proper equation of state)
+- **Sign convention**: Positive = inflation at caldera center
 
 ### 3. Earthquake Catalog (from sibling project)
 
