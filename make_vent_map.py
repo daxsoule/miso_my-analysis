@@ -29,62 +29,62 @@ VENT_FIELDS = {
     "Trevi": {"lon": -(129 + 59.023/60), "lat": 45 + 56.777/60, "depth": 1520},       # 45°56.777'N, 129°59.023'W
 }
 
-# Individual MISO vent locations
-# Coordinates are approximate - placed within vent fields with small offsets for label clarity
-# At 46°N: 100m ≈ 0.0009° lat, 100m ≈ 0.0013° lon
-# ASHES field center: 45.9336°N, -130.0137°W
-# Int'l District center: 45.9263°N, -129.9790°W
-# Trevi field center: 45.9463°N, -129.9838°W
+# Individual MISO vent locations (from constitution - precise coordinates)
 VENTS = {
-    # ASHES field vents - spread out for label clarity
+    # ASHES field vents
     "Inferno": {
-        "lon": -130.0150, "lat": 45.9345,
-        "field": "ASHES", "deployment": "2022-2025",
+        "lon": -130.013674, "lat": 45.933566,
+        "field": "ASHES", "logger": "MISO 2023-005",
         "temp": "~285-310°C", "type": "high-temp"
     },
-    "Hell (ASHES)": {
-        "lon": -130.0145, "lat": 45.9320,
-        "field": "ASHES", "deployment": "2024-2025",
+    "Hell": {
+        "lon": -130.013943, "lat": 45.933307,
+        "field": "ASHES", "logger": "MISO 2023-002",
         "temp": "~57°C", "type": "low-temp"
     },
     "Virgin": {
-        "lon": -130.0160, "lat": 45.9330,
-        "field": "ASHES", "deployment": "2024-2025",
+        "lon": -130.013237, "lat": 45.933624,
+        "field": "ASHES", "logger": "MISO 2023-007",
         "temp": "~50-290°C", "type": "intermittent"
     },
-    "Vixen": {
-        "lon": -130.0130, "lat": 45.9350,
-        "field": "ASHES", "deployment": "2024-2025",
-        "temp": "N/A", "type": "low-temp"
-    },
-    # Trevi vent field (separate from ASHES): 45°56.777'N, 129°59.023'W
-    "Trevi": {
-        "lon": -(129 + 59.023/60), "lat": 45 + 56.777/60,
-        "field": "Trevi", "deployment": "2024-2025",
-        "temp": "~135°C", "type": "intermittent"
-    },
-    # CASM vent field: 45°59.332'N, 130°1.632'W
-    "CASM": {
-        "lon": -(130 + 1.632/60), "lat": 45 + 59.332/60,
-        "field": "CASM", "deployment": "historical",
+    "Phoenix": {
+        "lon": -130.0136515, "lat": 45.93327021,
+        "field": "ASHES", "logger": None,
         "temp": "N/A", "type": "high-temp"
     },
-    # International District vents - spread out for label clarity
-    # Field center: 45.9263°N, -129.9790°W
-    "Hell (ID)": {
-        "lon": -129.9805, "lat": 45.9275,
-        "field": "Int'l District", "deployment": "2022-2024",
-        "temp": "~305°C", "type": "high-temp"
+    # Coquille field
+    "Vixen/Mkr218": {
+        "lon": -129.99295, "lat": 45.91733,
+        "field": "Coquille", "logger": "MISO 2023-012",
+        "temp": "N/A", "type": "low-temp"
     },
+    # International District vents
     "El Guapo": {
-        "lon": -129.9795, "lat": 45.9250,
-        "field": "Int'l District", "deployment": "2022-2024",
-        "temp": "~100-315°C", "type": "high-temp"
-    },
-    "El Guapo (Top)": {
-        "lon": -129.9760, "lat": 45.9265,
-        "field": "Int'l District", "deployment": "2024-2025",
+        "lon": -129.979493, "lat": 45.926486,
+        "field": "Int'l District", "logger": "MISO 2023-009",
         "temp": "~341°C", "type": "high-temp"
+    },
+    "Tiny Tower": {
+        "lon": -129.979186, "lat": 45.926314,
+        "field": "Int'l District", "logger": "MISO 2017-002",
+        "temp": "N/A", "type": "high-temp"
+    },
+    "Castle": {
+        "lon": -129.979996, "lat": 45.926218,
+        "field": "Int'l District", "logger": "MISO 103",
+        "temp": "N/A", "type": "high-temp"
+    },
+    # Trevi field
+    "Trevi/Mkr156": {
+        "lon": -129.983713, "lat": 45.946276,
+        "field": "Trevi", "logger": "MISO 2023-010",
+        "temp": "~135°C", "type": "intermittent"
+    },
+    # CASM field
+    "T&S/Shepherd": {
+        "lon": -130.027294, "lat": 45.989202,
+        "field": "CASM", "logger": None,
+        "temp": "N/A", "type": "high-temp"
     },
 }
 
@@ -159,15 +159,21 @@ def plot_vent_map(lon, lat, z, output_path: Path):
 
     # Label offsets to avoid overlap (vent_name: (x_offset, y_offset))
     label_offsets = {
-        "Inferno": (-70, 15),
-        "Hell (ASHES)": (-95, -5),
-        "Virgin": (-60, -30),
-        "Trevi": (12, 5),
-        "Vixen": (12, 8),
-        "CASM": (12, 5),
-        "Hell (ID)": (-70, 12),
-        "El Guapo": (-75, -20),
-        "El Guapo (Top)": (12, 5),
+        # ASHES cluster (vents within ~50m - spread labels out)
+        "Inferno": (-65, 15),
+        "Hell": (-45, -25),
+        "Virgin": (12, 12),
+        "Phoenix": (-70, -5),
+        # Coquille
+        "Vixen/Mkr218": (12, 5),
+        # International District cluster
+        "El Guapo": (-80, 12),
+        "Tiny Tower": (-85, -5),
+        "Castle": (12, -8),
+        # Trevi
+        "Trevi/Mkr156": (12, 5),
+        # CASM
+        "T&S/Shepherd": (12, 5),
     }
 
     for name, info in VENTS.items():

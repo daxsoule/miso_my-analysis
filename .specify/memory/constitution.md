@@ -45,6 +45,21 @@ Decimal degrees (for code):
 | International District | 45.9263 | -129.9790 | 1522 |
 | Trevi | 45.9463 | -129.9838 | 1520 |
 
+**Individual vent coordinates:**
+
+| Vent | Vent Field | Longitude | Latitude | 2024 Logger |
+|------|------------|-----------|----------|-------------|
+| Inferno | ASHES | -130.013674 | 45.933566 | MISO 2023-005 |
+| Hell | ASHES | -130.013943 | 45.933307 | MISO 2023-002 |
+| Virgin | ASHES | -130.013237 | 45.933624 | MISO 2023-007 |
+| Phoenix | ASHES | -130.0136515 | 45.93327021 | |
+| Vixen/Mkr218 | Coquille | -129.99295 | 45.91733 | MISO 2023-012 |
+| El Guapo | International District | -129.979493 | 45.926486 | MISO 2023-009 |
+| Tiny Tower | International District | -129.979186 | 45.926314 | MISO 2017-002 |
+| Trevi/Mkr156 | Trevi | -129.983713 | 45.946276 | MISO 2023-010 |
+| T&S or Shepherd | CASM | -130.027294 | 45.989202 | |
+| Castle-Mkr278 | International District | -129.979996 | 45.926218 | MISO 103 |
+
 **Related projects:**
 - `../my-analysis_botpt/` - Differential uplift (volcanic deformation)
 - `../earthquakes_my-analysis/` - Seismicity patterns
