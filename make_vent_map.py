@@ -330,7 +330,7 @@ def plot_site_map(lon, lat, z, output_path: Path):
     ax.text(scale_x + 2000, scale_y - vis_h * 0.015, '2 km',
             ha='center', fontsize=9, fontweight='bold', transform=utm9n)
 
-    ax.set_title('Axial Seamount Vent Fields', fontsize=36, fontweight='bold')
+    ax.set_title('Axial Seamount\nVent Fields', fontsize=36, fontweight='bold', pad=20)
 
     # Lat/lon gridlines with labels (replaces ax.grid + FuncFormatter)
     gl = ax.gridlines(crs=data_crs, draw_labels=True,

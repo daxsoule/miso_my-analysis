@@ -22,13 +22,13 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 BATHY_PATH = Path("/home/jovyan/my_data/axial/axial_bathy/MBARI_AxialSeamount_V2506_LASSlidar_Ashes_Topo1cmSq.grd")
 OUTPUT_DIR = Path(__file__).parent / "outputs" / "figures" / "poster"
 
-# ASHES vent locations (original constitution coordinates)
+# ASHES vent locations (picked from 1cm bathymetry with UTM 9N projection)
 VENTS = {
-    "Inferno": {"lon": -130.013674, "lat": 45.933566, "type": "high-temp"},
-    "Hell": {"lon": -130.013943, "lat": 45.933307, "type": "low-temp"},
-    "Virgin": {"lon": -130.013237, "lat": 45.933624, "type": "intermittent"},
-    "Phoenix": {"lon": -130.0136515, "lat": 45.93327021, "type": "no-data"},
-    "Mushroom": {"lon": -130.013757, "lat": 45.933563, "type": "no-data"},
+    "Inferno": {"lon": -130.013866, "lat": 45.933519, "type": "high-temp"},
+    "Hell": {"lon": -130.014143, "lat": 45.933272, "type": "low-temp"},
+    "Virgin": {"lon": -130.013280, "lat": 45.933615, "type": "intermittent"},
+    "Phoenix": {"lon": -130.013848, "lat": 45.933224, "type": "no-data"},
+    "Mushroom": {"lon": -130.013757, "lat": 45.933562, "type": "no-data"},
 }
 
 # Temperature classification colors (consistent with make_vent_map.py)
