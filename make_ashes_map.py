@@ -14,21 +14,22 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from matplotlib.colors import LightSource
 from matplotlib.lines import Line2D
+from datetime import date
 from pathlib import Path
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 # Paths
 BATHY_PATH = Path("/home/jovyan/my_data/axial/axial_bathy/MBARI_AxialSeamount_V2506_LASSlidar_Ashes_Topo1cmSq.grd")
-OUTPUT_DIR = Path(__file__).parent / "outputs" / "figures" / "poster"
+OUTPUT_DIR = Path(__file__).parent / "outputs" / "figures" / "poster" / "miso_maps"
 
 # ASHES vent locations (picked from 1cm bathymetry with UTM 9N projection)
 VENTS = {
-    "Inferno": {"lon": -130.013866, "lat": 45.933519, "type": "high-temp"},
-    "Hell": {"lon": -130.014143, "lat": 45.933272, "type": "low-temp"},
-    "Virgin": {"lon": -130.013280, "lat": 45.933615, "type": "intermittent"},
-    "Phoenix": {"lon": -130.013848, "lat": 45.933224, "type": "no-data"},
-    "Mushroom": {"lon": -130.013757, "lat": 45.933562, "type": "no-data"},
+    "Inferno": {"lon": -130.013865, "lat": 45.933519, "type": "high-temp"},
+    "Hell": {"lon": -130.014140, "lat": 45.933272, "type": "low-temp"},
+    "Virgin": {"lon": -130.013447, "lat": 45.933615, "type": "intermittent"},
+    "Phoenix": {"lon": -130.013852, "lat": 45.933217, "type": "no-data"},
+    "Mushroom": {"lon": -130.013757, "lat": 45.933563, "type": "no-data"},
 }
 
 # Temperature classification colors (consistent with make_vent_map.py)
@@ -283,6 +284,12 @@ def plot_ashes_map(x, y, z, output_path: Path, subsample: int = 1):
     ]
     ax.legend(handles=legend_elements, loc='upper left', fontsize=9,
               framealpha=0.95, edgecolor='black')
+
+    # Date/projection stamp at bottom-right of map area
+    stamp_text = f"Map updated: {date.today().strftime('%Y-%m-%d')}, WGS84, UTM 9N"
+    ax.text(vis_x_max - vis_w * 0.02, vis_y_min + vis_h * 0.02, stamp_text,
+            ha='right', va='bottom', fontsize=9, transform=utm9n, zorder=15,
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
 
     # Neatline (alternating black/white ladder border)
     draw_neatline(ax, n_segments=16, linewidth=8)

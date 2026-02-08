@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from pathlib import Path
+import textwrap
 
 # --- Font configuration: Helvetica for all figures ---
 plt.rcParams['font.family'] = 'sans-serif'
@@ -183,25 +184,26 @@ HISTORICAL_INSTRUMENTS = [
     },
 ]
 
-# --- 2015-2019 instruments (pre-inflation period) ---
-INSTRUMENTS_2015_2019 = [
-    {
-        "file": DATA_HISTORICAL / "vixen" / "MISO103-Chip1-Axial-2015-Vixen.txt",
-        "instrument": "MISO 103",
-        "vent": "Vixen",
-        "field": "Coquille",
-        "deployment": "2015-2019",
-        "format": "miso_historical_tab",
-    },
-    {
-        "file": DATA_HISTORICAL / "trevi" / "MISO101-Chip1-Axial-2015-Trevi.txt",
-        "instrument": "MISO 101",
-        "vent": "Trevi",
-        "field": "ASHES",
-        "deployment": "2015-2019",
-        "format": "miso_historical_tab",
-    },
-]
+# UNUSED: 2015-2019 instruments (pre-inflation period) - Removed per user request
+# # --- 2015-2019 instruments (pre-inflation period) ---
+# INSTRUMENTS_2015_2019 = [
+#     {
+#         "file": DATA_HISTORICAL / "vixen" / "MISO103-Chip1-Axial-2015-Vixen.txt",
+#         "instrument": "MISO 103",
+#         "vent": "Vixen",
+#         "field": "Coquille",
+#         "deployment": "2015-2019",
+#         "format": "miso_historical_tab",
+#     },
+#     {
+#         "file": DATA_HISTORICAL / "trevi" / "MISO101-Chip1-Axial-2015-Trevi.txt",
+#         "instrument": "MISO 101",
+#         "vent": "Trevi",
+#         "field": "ASHES",
+#         "deployment": "2015-2019",
+#         "format": "miso_historical_tab",
+#     },
+# ]
 
 
 # --- 2015 eruption instruments (Vixen, Casper, Escargot) ---
@@ -630,21 +632,39 @@ def set_spine_width(ax, width=POSTER_SPINE_WIDTH):
         spine.set_linewidth(width)
 
 
-def add_figure_caption(fig, caption_text, fontsize=POSTER_CAPTION_SIZE):
-    """Add a caption below the figure with proper spacing."""
-    # Create a separate axes for the caption at the bottom
-    caption_ax = fig.add_axes([0.05, 0.02, 0.9, 0.18])  # [left, bottom, width, height]
+def add_caption_justified(fig, caption_text, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE):
+    """Add a left-aligned, justified caption below the figure.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        The figure to add caption to
+    caption_text : str
+        The caption text
+    caption_width : float
+        Width of caption in figure fraction (default 0.85 for ~85% of figure width)
+    fontsize : int
+        Caption font size
+    """
+    # Calculate wrap width based on figure width and font size
+    caption_width_in = caption_width * fig.get_size_inches()[0]
+    char_width_in = fontsize / 72 * 0.50  # approximate char width for sans-serif
+    wrap_chars = int(caption_width_in / char_width_in)
+    caption_wrapped = textwrap.fill(caption_text, width=wrap_chars)
+
+    # Create caption axes at bottom
+    caption_ax = fig.add_axes([0.05, 0.02, caption_width, 0.15])
     caption_ax.axis('off')
-    caption_ax.text(0.5, 1.0, caption_text, ha="center", va="top", fontsize=fontsize,
-                    wrap=True, transform=caption_ax.transAxes,
-                    multialignment="center")
+    caption_ax.text(0.0, 1.0, caption_wrapped, ha="left", va="top",
+                    fontsize=fontsize, transform=caption_ax.transAxes,
+                    family='sans-serif')
 
 
-def fig_historical_eruption(records, fig_path, eruption_date=None):
+def fig_historical_eruption(records, fig_path, eruption_date=None, bpr=None):
     """Figure: Historical vent temperatures around the 2011 eruption."""
     # Create figure with space for caption below
     fig = plt.figure(figsize=(10, 8), dpi=POSTER_DPI)
-    ax = fig.add_axes([0.1, 0.28, 0.85, 0.62])  # [left, bottom, width, height] - plot area
+    ax = fig.add_axes([0.1, 0.28, 0.80, 0.62])  # [left, bottom, width, height] - plot area
 
     # Cut off data at local maximum (mid-July 2011) to exclude instrument recovery
     data_end = pd.Timestamp("2011-07-18")
@@ -663,7 +683,7 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
 
     ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax.set_title("Vent Temperatures Around the April 2011 Eruption\nAxial Seamount", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+    ax.set_title("April 2011 Eruption Response", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
     set_spine_width(ax)
@@ -679,96 +699,122 @@ def fig_historical_eruption(records, fig_path, eruption_date=None):
     # Set x-axis limits with balanced padding on both sides
     ax.set_xlim(left=pd.Timestamp("2010-08-15"), right=pd.Timestamp("2011-08-01"))
 
-    # Legend in lower left (away from eruption signal)
-    ax.legend(loc="lower left", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
+    # BPR on right axis
+    ax2 = None
+    if bpr is not None:
+        xmin_ts = pd.Timestamp("2010-08-15")
+        xmax_ts = pd.Timestamp("2011-08-01")
+        ax2 = ax.twinx()
+        bpr_visible = bpr.loc[xmin_ts:xmax_ts].dropna()
+        if len(bpr_visible) > 0:
+            ax2.plot(bpr_visible.index, bpr_visible.values,
+                     color="#1E90FF", alpha=0.7, linewidth=POSTER_LINE_WIDTH + 0.5,
+                     linestyle="-", label="Uplift (m)")
+            ax2.set_ylabel("Uplift (m)", color="#1E90FF", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+            ax2.tick_params(axis="y", labelcolor="#1E90FF", labelsize=POSTER_TICK_SIZE)
+            set_spine_width(ax2)
+
+    # Combined legend
+    lines1, labels1 = ax.get_legend_handles_labels()
+    if ax2 is not None:
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        all_lines = lines1 + lines2
+        all_labels = labels1 + labels2
+    else:
+        all_lines, all_labels = lines1, labels1
+    ax.legend(all_lines, all_labels, loc="lower left", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
 
     # Eruption annotation
     if eruption_date:
         ax.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.8)
         ax.annotate("April 6, 2011\neruption", xy=(eruption_date, 328),
                     xytext=(5, -5), textcoords="offset points",
-                    fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="top", fontweight="bold")
+                    fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="top", fontweight="bold",
+                    arrowprops=dict(arrowstyle='->', color='#CC0000', lw=1.5))
 
-    # Figure caption (20pt font for poster)
+    # Figure caption - left-aligned, justified
     caption = (
         "Vent temperatures spanning the April 6, 2011 Axial Seamount eruption. "
-        "Y-axis: temperature (°C); x-axis: date. Casper (blue, Coquille field) and Diva (orange, International District). "
+        "Y-axis: temperature (°C); right axis: seafloor uplift (m). "
+        "Casper (teal, Coquille field) and Diva (vermillion, International District). "
         "Both vents responded with immediate temperature drops post-eruption and gradual recovery on similar timescales. "
-        "Diva's response (~70°C drop) was stronger than Casper's (~10°C drop)."
+        "Diva's response (~70°C drop) was stronger than Casper's (~10°C drop). "
+        "BPR uplift (blue line) shows pre-eruption inflation and co-eruptive deflation."
     )
-    add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
+    add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
     print(f"Saved: {fig_path}")
 
 
-def fig_2015_2019(records, fig_path, eruption_date=None):
-    """Figure: Vixen and Trevi temperatures spanning 2015-2019 (includes April 2015 eruption)."""
-    # Create figure with space for caption below
-    fig = plt.figure(figsize=(10, 8), dpi=POSTER_DPI)
-    ax = fig.add_axes([0.1, 0.28, 0.85, 0.62])
-
-    # Find actual data range
-    all_starts = []
-    all_ends = []
-    for rec in records:
-        deployed = rec[rec["deployed"]]
-        if len(deployed) > 0:
-            all_starts.append(deployed.index.min())
-            all_ends.append(deployed.index.max())
-
-    for rec in records:
-        deployed = rec[rec["deployed"]]
-        if len(deployed) == 0:
-            continue
-
-        vent = rec.attrs["vent"]
-        field = rec.attrs["field"]
-        color = VENT_COLORS.get(vent, "#333333")
-        label = f"{vent} ({field})"
-        daily = deployed["temperature"].resample("D").mean()
-        ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
-
-    ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax.set_title("Vent Temperatures After the April 2015 Eruption\nAxial Seamount", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
-    ax.grid(True, alpha=0.3)
-    ax.tick_params(labelsize=POSTER_TICK_SIZE)
-    set_spine_width(ax)
-
-    # Set x-axis limits with balanced padding (based on actual data)
-    if all_starts:
-        xmin = min(all_starts) - pd.Timedelta(days=45)
-        xmax = max(all_ends) + pd.Timedelta(days=45)
-        ax.set_xlim(xmin, xmax)
-
-    # Clean date formatting - 4 month intervals for ~2 year span
-    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=4))
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    plt.setp(ax.xaxis.get_majorticklabels(), rotation=0, ha="center")
-
-    # Legend in upper right
-    ax.legend(loc="upper right", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
-
-    # April 2015 eruption annotation
-    if eruption_date:
-        ax.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.8)
-        ax.annotate("April 24, 2015\neruption", xy=(eruption_date, ax.get_ylim()[1]),
-                    xytext=(5, -5), textcoords="offset points",
-                    fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="top", fontweight="bold")
-
-    # Figure caption
-    caption = (
-        "Vent temperatures following the April 24, 2015 Axial Seamount eruption. "
-        "Y-axis: temperature (°C); x-axis: date. Vixen (purple, Coquille field) and Trevi (orange, ASHES field). "
-        "Deployments began ~4 months post-eruption. Both vents show variable temperatures (~150–300°C)."
-    )
-    add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
-
-    fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
-    plt.close(fig)
-    print(f"Saved: {fig_path}")
+# UNUSED: fig_2015_2019 - Removed per user request (keeping only fig_eruption_2015_vce for 2015 eruption)
+# def fig_2015_2019(records, fig_path, eruption_date=None):
+#     """Figure: Vixen and Trevi temperatures spanning 2015-2019 (includes April 2015 eruption)."""
+#     # Create figure with space for caption below
+#     fig = plt.figure(figsize=(10, 8), dpi=POSTER_DPI)
+#     ax = fig.add_axes([0.1, 0.28, 0.85, 0.62])
+#
+#     # Find actual data range
+#     all_starts = []
+#     all_ends = []
+#     for rec in records:
+#         deployed = rec[rec["deployed"]]
+#         if len(deployed) > 0:
+#             all_starts.append(deployed.index.min())
+#             all_ends.append(deployed.index.max())
+#
+#     for rec in records:
+#         deployed = rec[rec["deployed"]]
+#         if len(deployed) == 0:
+#             continue
+#
+#         vent = rec.attrs["vent"]
+#         field = rec.attrs["field"]
+#         color = VENT_COLORS.get(vent, "#333333")
+#         label = f"{vent} ({field})"
+#         daily = deployed["temperature"].resample("D").mean()
+#         ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
+#
+#     ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+#     ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+#     ax.set_title("Vent Temperatures After the April 2015 Eruption\nAxial Seamount", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+#     ax.grid(True, alpha=0.3)
+#     ax.tick_params(labelsize=POSTER_TICK_SIZE)
+#     set_spine_width(ax)
+#
+#     # Set x-axis limits with balanced padding (based on actual data)
+#     if all_starts:
+#         xmin = min(all_starts) - pd.Timedelta(days=45)
+#         xmax = max(all_ends) + pd.Timedelta(days=45)
+#         ax.set_xlim(xmin, xmax)
+#
+#     # Clean date formatting - 4 month intervals for ~2 year span
+#     ax.xaxis.set_major_locator(mdates.MonthLocator(interval=4))
+#     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+#     plt.setp(ax.xaxis.get_majorticklabels(), rotation=0, ha="center")
+#
+#     # Legend in upper right
+#     ax.legend(loc="upper right", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
+#
+#     # April 2015 eruption annotation
+#     if eruption_date:
+#         ax.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.8)
+#         ax.annotate("April 24, 2015\neruption", xy=(eruption_date, ax.get_ylim()[1]),
+#                     xytext=(5, -5), textcoords="offset points",
+#                     fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="top", fontweight="bold")
+#
+#     # Figure caption - left-aligned, justified
+#     caption = (
+#         "Vent temperatures following the April 24, 2015 Axial Seamount eruption. "
+#         "Y-axis: temperature (°C); x-axis: date. Vixen (purple, Coquille field) and Trevi (orange, ASHES field). "
+#         "Deployments began ~4 months post-eruption. Both vents show variable temperatures (~150–300°C)."
+#     )
+#     add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
+#
+#     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
+#     plt.close(fig)
+#     print(f"Saved: {fig_path}")
 
 
 def load_bpr_historical():
@@ -829,7 +875,7 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
 
     ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax.set_title("Vent Temperatures Around the April 2015 Eruption\nAxial Seamount", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+    ax.set_title("April 2015 Eruption Response", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax.set_ylim(225, 350)
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
@@ -859,7 +905,7 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
             ax2.tick_params(axis="y", labelcolor="#0868AC", labelsize=POSTER_TICK_SIZE)
             set_spine_width(ax2)
 
-    # Combined legend — right side
+    # Combined legend — upper right
     lines1, labels1 = ax.get_legend_handles_labels()
     if bpr is not None:
         lines2, labels2 = ax2.get_legend_handles_labels()
@@ -867,28 +913,29 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         all_labels = labels1 + labels2
     else:
         all_lines, all_labels = lines1, labels1
-    ax.legend(all_lines, all_labels, loc="lower right", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
+    ax.legend(all_lines, all_labels, loc="upper right", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
 
-    # April 2015 eruption annotation — lower quarter
+    # April 2015 eruption annotation — lower quarter, left side
     if eruption_date:
         ax.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.8)
         ymin, ymax = ax.get_ylim()
         y_pos = ymin + (ymax - ymin) * 0.25
         ax.annotate("April 24, 2015\neruption", xy=(eruption_date, y_pos),
-                    xytext=(5, 0), textcoords="offset points",
-                    fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="center", fontweight="bold")
+                    xytext=(-5, 0), textcoords="offset points",
+                    fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="center", ha="right", fontweight="bold",
+                    arrowprops=dict(arrowstyle='->', color='#CC0000', lw=1.5))
 
-    # Figure caption
+    # Figure caption - left-aligned, justified
     caption = (
         "Vent temperatures spanning the April 24, 2015 Axial Seamount eruption. "
         "Y-axis: temperature (°C); right axis: seafloor uplift (m). "
-        "Vixen (orange, Coquille), Casper (green, Coquille), "
+        "Vixen (vermillion, Coquille), Casper (teal, Coquille), "
         "Escargot (purple, International District, OOI TRHPHA301), "
-        "and BPR uplift (dashed blue). "
+        "and BPR uplift (dashed blue line). "
         "Escargot shown only during stable pre-crash period (Sept–Nov 2014). "
         "Pre-eruption data captured by MISO loggers (Vixen, Casper) and OOI cabled sensor (Escargot)."
     )
-    add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
+    add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
@@ -1050,17 +1097,28 @@ def fig_survey_overview(records, fig_path):
     fig.suptitle("MISO Temperature Survey\nAll Recent Instruments (2022–2025)",
                  fontsize=POSTER_TITLE_SIZE, fontweight="bold", y=0.99)
 
-    # Figure caption
+    # Figure caption - left-aligned, justified
     caption = (
         "Daily mean vent temperatures from MISO deployments at Axial Seamount (2022–2025). "
         "Each panel shows one vent; solid lines = 2022–2024, dashed = 2024–2025. "
         "ASHES vents shown first, then International District (ID). "
         "Vertical dotted line marks Chadwick cruise (June 2024)."
     )
-    # Add caption at the very bottom of the figure
-    fig.text(0.5, 0.01, caption, ha="center", va="bottom", fontsize=POSTER_CAPTION_SIZE - 2,
-             wrap=True, multialignment="center",
-             bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9))
+
+    # Calculate wrap width
+    caption_width = 0.85
+    caption_width_in = caption_width * fig.get_size_inches()[0]
+    char_width_in = POSTER_CAPTION_SIZE / 72 * 0.50
+    wrap_chars = int(caption_width_in / char_width_in)
+    caption_wrapped = textwrap.fill(caption, width=wrap_chars)
+
+    # Add caption at bottom with white background box
+    caption_ax = fig.add_axes([0.075, 0.01, caption_width, 0.06])
+    caption_ax.axis('off')
+    caption_ax.text(0.0, 0.5, caption_wrapped, ha="left", va="center",
+                    fontsize=POSTER_CAPTION_SIZE - 2, transform=caption_ax.transAxes,
+                    family='sans-serif',
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9))
 
     plt.tight_layout(rect=[0, 0.08, 1, 0.96])  # Leave space at bottom for caption
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
@@ -1122,15 +1180,15 @@ def fig_hightemp_comparison(records, summary, fig_path):
                 xytext=(-5, -5), textcoords="offset points",
                 fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top", ha="right")
 
-    # Figure caption (24pt font for poster)
+    # Figure caption - left-aligned, justified
     caption = (
         "Daily mean temperatures from high-temperature vents at Axial Seamount (2022–2025). "
         "Y-axis: temperature (°C). Inferno (ASHES) shows stable ~285–310°C across both deployments. "
-        "Hell (ASHES) and El Guapo (International District) show greater variability, with El Guapo"
+        "Hell (ASHES) and El Guapo (International District) show greater variability, with El Guapo "
         "exhibiting dramatic swings (100–315°C). El Guapo Top is the hottest and most stable (~341°C). "
         "Vertical dashed line marks Chadwick cruise (June 2024)."
     )
-    add_figure_caption(fig, caption, fontsize=POSTER_CAPTION_SIZE)
+    add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
@@ -1250,7 +1308,8 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
             ax3.axvline(visions_cruise, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
             ax3.annotate("VISIONS\ncruise", xy=(visions_cruise, tmpsf_visible.max()),
                          xytext=(5, -5), textcoords="offset points",
-                         fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top")
+                         fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top",
+                         arrowprops=dict(arrowstyle='->', color='#666666', lw=1.5))
     else:
         ax1.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         # Clean date formatting for x-axis
@@ -1263,14 +1322,15 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         ax1.axvline(chadwick_cruise, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
         ax1.annotate("Chadwick\ncruise", xy=(chadwick_cruise, ax1.get_ylim()[1]),
                      xytext=(-5, -5), textcoords="offset points",
-                     fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top", ha="right")
+                     fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top", ha="right",
+                     arrowprops=dict(arrowstyle='->', color='#666666', lw=1.5))
 
     # Legend in lower right, to the right of deployment change line (vertical)
     ax1.legend(all_lines, all_labels,
                loc="lower left", bbox_to_anchor=(0.62, 0.02), ncol=1,
                fontsize=POSTER_LEGEND_SIZE - 2, frameon=True, framealpha=0.9)
 
-    ax1.set_title("Hydrothermal Vent Temperatures and Volcanic Deformation\nAxial Seamount (2022–2025)",
+    ax1.set_title("Vent Temperatures & Deformation",
                   fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax1.grid(True, alpha=0.3)
     set_spine_width(ax1)
@@ -1280,7 +1340,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     if tmpsf is not None:
         ax3.text(-0.08, 1.05, "(b)", transform=ax3.transAxes, fontsize=POSTER_PANEL_LABEL_SIZE, fontweight="bold", va="bottom")
 
-    # Figure caption (24pt font for poster) - use dedicated axes to avoid overlap
+    # Figure caption - left-aligned, justified
     caption = (
         "(a) Daily mean focused vent temperatures (°C) from high-temperature vents at "
         "Axial Seamount with seafloor uplift (m, right axis) referenced to April 2015 post-eruption minimum. "
@@ -1288,10 +1348,18 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         "Vertical lines mark Chadwick cruise (June 2024, MISO servicing) and VISIONS cruise "
         "(Sept 2024, OOI/TMPSF servicing). BPR shows ~1.6 m of re-inflation since the 2015 eruption."
     )
-    caption_ax = fig.add_axes([0.05, 0.01, 0.9, 0.13])
+
+    # Calculate wrap width
+    caption_width = 0.85
+    caption_width_in = caption_width * fig.get_size_inches()[0]
+    char_width_in = POSTER_CAPTION_SIZE / 72 * 0.50
+    wrap_chars = int(caption_width_in / char_width_in)
+    caption_wrapped = textwrap.fill(caption, width=wrap_chars)
+
+    caption_ax = fig.add_axes([0.05, 0.01, caption_width, 0.13])
     caption_ax.axis("off")
-    caption_ax.text(0.5, 0.95, caption, ha="center", va="top", fontsize=POSTER_CAPTION_SIZE,
-                    wrap=True, transform=caption_ax.transAxes, multialignment="center")
+    caption_ax.text(0.0, 1.0, caption_wrapped, ha="left", va="top", fontsize=POSTER_CAPTION_SIZE,
+                    transform=caption_ax.transAxes, family='sans-serif')
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
@@ -1374,35 +1442,42 @@ def main():
 
     if historical_records:
         eruption_date = pd.Timestamp("2011-04-06")  # April 2011 eruption
+        # Load historical BPR for 2011 figure
+        bpr_2011 = None
+        if BPR_HIST_PATH.exists():
+            print("Loading historical BPR data for 2011 figure...")
+            bpr_2011 = load_bpr_historical()
+            print(f"  BPR range: {bpr_2011.index.min()} to {bpr_2011.index.max()}")
         fig_historical_eruption(historical_records, FIG_DIR / "eruption_2011_casper_diva.png",
-                                eruption_date=eruption_date)
+                                eruption_date=eruption_date, bpr=bpr_2011)
 
-    # Load and plot 2015-2019 data (Vixen, Trevi)
-    print("\nLoading 2015-2019 instruments (Vixen, Trevi)...")
-    records_2015 = []
-    for config in INSTRUMENTS_2015_2019:
-        vent = config["vent"]
-        inst = config["instrument"]
-        print(f"Loading {vent} ({inst})...")
-        try:
-            rec = load_historical_instrument(config)
-            records_2015.append(rec)
-            deployed = rec[rec["deployed"]]
-            n_dep = len(deployed)
-            if n_dep > 0:
-                temp = deployed["temperature"].dropna()
-                print(f"  Deployed samples: {n_dep:,}  |  "
-                      f"Temp: {temp.min():.1f}–{temp.max():.1f}°C  |  "
-                      f"Capped: {rec.attrs['n_capped']}  Spikes: {rec.attrs['n_spikes']}")
-            else:
-                print(f"  No deployed samples (total rows: {len(rec)})")
-        except Exception as e:
-            print(f"  ERROR loading {vent} ({inst}): {e}")
-
-    if records_2015:
-        eruption_2015 = pd.Timestamp("2015-04-24")  # April 2015 eruption
-        fig_2015_2019(records_2015, FIG_DIR / "eruption_2015_vixen_trevi.png",
-                      eruption_date=eruption_2015)
+    # UNUSED: 2015-2019 figure (Vixen, Trevi) - Removed per user request
+    # # Load and plot 2015-2019 data (Vixen, Trevi)
+    # print("\nLoading 2015-2019 instruments (Vixen, Trevi)...")
+    # records_2015 = []
+    # for config in INSTRUMENTS_2015_2019:
+    #     vent = config["vent"]
+    #     inst = config["instrument"]
+    #     print(f"Loading {vent} ({inst})...")
+    #     try:
+    #         rec = load_historical_instrument(config)
+    #         records_2015.append(rec)
+    #         deployed = rec[rec["deployed"]]
+    #         n_dep = len(deployed)
+    #         if n_dep > 0:
+    #             temp = deployed["temperature"].dropna()
+    #             print(f"  Deployed samples: {n_dep:,}  |  "
+    #                   f"Temp: {temp.min():.1f}–{temp.max():.1f}°C  |  "
+    #                   f"Capped: {rec.attrs['n_capped']}  Spikes: {rec.attrs['n_spikes']}")
+    #         else:
+    #             print(f"  No deployed samples (total rows: {len(rec)})")
+    #     except Exception as e:
+    #         print(f"  ERROR loading {vent} ({inst}): {e}")
+    #
+    # if records_2015:
+    #     eruption_2015 = pd.Timestamp("2015-04-24")  # April 2015 eruption
+    #     fig_2015_2019(records_2015, FIG_DIR / "eruption_2015_vixen_trevi.png",
+    #                   eruption_date=eruption_2015)
 
     # Load and plot 2015 eruption data (Vixen, Casper, Escargot)
     print("\nLoading 2015 eruption instruments (Vixen, Casper, Escargot)...")
