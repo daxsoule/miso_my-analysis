@@ -1,0 +1,15 @@
+name: miso-vent-maps
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - numpy>=1.26
+  - xarray>=2024.0
+  - netcdf4>=1.6
+  - matplotlib>=3.8
+  - cartopy>=0.22
+  - ipympl>=0.9
+  - jupyter>=1.0
+  - jupyterlab>=4.0
+  - pip

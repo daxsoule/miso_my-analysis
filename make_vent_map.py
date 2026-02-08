@@ -173,7 +173,8 @@ def load_bathymetry(path: Path, subsample: int = 1, extent: dict = None) -> tupl
 
 
 def plot_shaded_relief(ax, lon, lat, z, extent=None, add_contours=True,
-                       contour_labels=True, utm_crs=None, data_crs=None):
+                       contour_labels=True, utm_crs=None, data_crs=None,
+                       contour_interval=50, contour_label_every=2):
     """Plot shaded relief on an axis.
 
     When utm_crs and data_crs are provided, transforms coordinates to UTM
@@ -203,13 +204,13 @@ def plot_shaded_relief(ax, lon, lat, z, extent=None, add_contours=True,
             pts = utm_crs.transform_points(data_crs, lon_grid, lat_grid)
             x_utm_grid = pts[:, :, 0]
             y_utm_grid = pts[:, :, 1]
-            contour_levels = np.arange(-2200, -1400, 50)
+            contour_levels = np.arange(-2200, -1400, contour_interval)
             cs = ax.contour(x_utm_grid, y_utm_grid, z, levels=contour_levels,
                             colors='black', linewidths=0.3, alpha=0.5,
                             transform=utm_crs)
             if contour_labels:
-                ax.clabel(cs, levels=contour_levels[::2], fontsize=7,
-                          fmt='%d m', inline=True)
+                ax.clabel(cs, levels=contour_levels[::contour_label_every],
+                          fontsize=7, fmt='%d m', inline=True)
 
         if extent:
             ext_lons = np.array([extent['lon_min'], extent['lon_max']])
@@ -223,12 +224,12 @@ def plot_shaded_relief(ax, lon, lat, z, extent=None, add_contours=True,
 
         if add_contours:
             lon_grid, lat_grid = np.meshgrid(lon, lat)
-            contour_levels = np.arange(-2200, -1400, 50)
+            contour_levels = np.arange(-2200, -1400, contour_interval)
             cs = ax.contour(lon_grid, lat_grid, z, levels=contour_levels,
                             colors='black', linewidths=0.3, alpha=0.5)
             if contour_labels:
-                ax.clabel(cs, levels=contour_levels[::2], fontsize=7,
-                          fmt='%d m', inline=True)
+                ax.clabel(cs, levels=contour_levels[::contour_label_every],
+                          fontsize=7, fmt='%d m', inline=True)
 
         if extent:
             ax.set_xlim(extent['lon_min'], extent['lon_max'])
@@ -242,17 +243,19 @@ def plot_site_map(lon, lat, z, output_path: Path):
 
     print("Creating site overview map...")
 
-    # UTM zone 10N for Axial Seamount (~130°W, ~46°N)
-    utm10n = ccrs.UTM(zone=10, southern_hemisphere=False)
+    # UTM zone 9N for Axial Seamount (~130°W falls in zone 9: 132°W–126°W)
+    utm9n = ccrs.UTM(zone=9, southern_hemisphere=False)
     data_crs = ccrs.PlateCarree()
 
     fig = plt.figure(figsize=(10, 12))
-    ax = fig.add_axes([0.08, 0.20, 0.84, 0.72], projection=utm10n)
+    ax = fig.add_axes([0.08, 0.20, 0.84, 0.72], projection=utm9n)
 
     # Plot shaded relief with contours
     z_min, z_max = plot_shaded_relief(ax, lon, lat, z, add_contours=True,
                                        contour_labels=True,
-                                       utm_crs=utm10n, data_crs=data_crs)
+                                       utm_crs=utm9n, data_crs=data_crs,
+                                       contour_interval=20,
+                                       contour_label_every=5)
 
     # All vent fields including CASM
     all_vent_fields = {
@@ -263,28 +266,30 @@ def plot_site_map(lon, lat, z, output_path: Path):
         "CASM": {"lon": -(130 + 1.632/60), "lat": 45 + 59.332/60},
     }
 
-    # Label offsets for each field (in screen points)
+    # Label offsets for each field (in screen points) — tuned to avoid clipping
     label_offsets = {
-        "ASHES": (-65, 5),
-        "Coquille": (10, -15),
-        "Int'l District": (10, 5),
-        "Trevi": (10, 5),
-        "CASM": (10, 5),
+        "ASHES": (-70, 10),
+        "Coquille": (-80, 15),
+        "Int'l District": (-100, -15),
+        "Trevi": (20, 15),
+        "CASM": (-70, 10),
     }
 
-    # Plot vent field markers
+    # Plot vent field markers and labels with arrow pointers
     for field_name, field_info in all_vent_fields.items():
-        ax.plot(field_info['lon'], field_info['lat'], 's', markersize=14,
-                color='yellow', markeredgecolor='black', markeredgewidth=2,
-                zorder=8, transform=data_crs)
+        ax.plot(field_info['lon'], field_info['lat'], 'o', markersize=8,
+                markerfacecolor='white', markeredgecolor='black',
+                markeredgewidth=1.5, zorder=10, transform=data_crs)
 
-        offset = label_offsets.get(field_name, (10, 5))
+        offset = label_offsets.get(field_name, (20, 15))
         ax.annotate(field_name, (field_info['lon'], field_info['lat']),
                     xycoords=data_crs._as_mpl_transform(ax),
                     xytext=offset, textcoords='offset points',
                     fontsize=11, fontweight='bold', style='italic',
-                    bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow',
-                             alpha=0.9, edgecolor='black', linewidth=1),
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                             alpha=0.9, edgecolor='black', linewidth=1.5),
+                    arrowprops=dict(arrowstyle='->', color='black', lw=1.2,
+                                   shrinkB=5),
                     zorder=11)
 
     # Add colorbar
@@ -294,28 +299,38 @@ def plot_site_map(lon, lat, z, output_path: Path):
     cbar = plt.colorbar(sm, ax=ax, shrink=0.7, pad=0.02)
     cbar.set_label('Depth (m)', fontsize=11)
 
-    # Scale bar (1 km) — true meters via UTM
+    # Scale bar (2 km) — neatline style: alternating black/white first km, solid second km
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
     vis_w = xlim[1] - xlim[0]
     vis_h = ylim[1] - ylim[0]
     scale_x = xlim[0] + vis_w * 0.05
     scale_y = ylim[0] + vis_h * 0.05
+    bar_lw = 6
+    # First km: alternating black/white segments (10 x 100m)
+    for i in range(10):
+        seg_start = scale_x + i * 100
+        color = 'black' if i % 2 == 0 else 'white'
+        ax.plot([seg_start, seg_start + 100], [scale_y, scale_y],
+                color=color, linewidth=bar_lw, solid_capstyle='butt',
+                transform=utm9n, zorder=15)
+    # Black outline around first km for white segments to read against map
     ax.plot([scale_x, scale_x + 1000], [scale_y, scale_y],
-            'k-', linewidth=4, transform=utm10n)
-    ax.text(scale_x + 500, scale_y + vis_h * 0.02, '1 km',
-            ha='center', fontsize=10, fontweight='bold', transform=utm10n,
-            bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
+            color='black', linewidth=bar_lw + 2, solid_capstyle='butt',
+            transform=utm9n, zorder=14)
+    # Second km: single solid black bar
+    ax.plot([scale_x + 1000, scale_x + 2000], [scale_y, scale_y],
+            'k-', linewidth=bar_lw, solid_capstyle='butt',
+            transform=utm9n, zorder=15)
+    # Labels
+    ax.text(scale_x, scale_y - vis_h * 0.015, '0',
+            ha='center', fontsize=9, fontweight='bold', transform=utm9n)
+    ax.text(scale_x + 1000, scale_y - vis_h * 0.015, '1',
+            ha='center', fontsize=9, fontweight='bold', transform=utm9n)
+    ax.text(scale_x + 2000, scale_y - vis_h * 0.015, '2 km',
+            ha='center', fontsize=9, fontweight='bold', transform=utm9n)
 
-    # Legend
-    legend_elements = [
-        Line2D([0], [0], marker='s', color='w', markerfacecolor='yellow',
-               markersize=14, markeredgecolor='black', markeredgewidth=2,
-               label='Vent Field'),
-    ]
-    ax.legend(handles=legend_elements, loc='lower right', fontsize=10, framealpha=0.95)
-
-    ax.set_title('Axial Seamount Caldera\nHydrothermal Vent Fields', fontsize=14, fontweight='bold')
+    ax.set_title('Axial Seamount Vent Fields', fontsize=36, fontweight='bold')
 
     # Lat/lon gridlines with labels (replaces ax.grid + FuncFormatter)
     gl = ax.gridlines(crs=data_crs, draw_labels=True,
@@ -337,28 +352,41 @@ def plot_site_map(lon, lat, z, output_path: Path):
                 xytext=(arrow_x, arrow_y - arrow_len),
                 fontsize=12, fontweight='bold', ha='center', va='bottom',
                 arrowprops=dict(arrowstyle='->', color='black', lw=2),
-                transform=utm10n, zorder=15,
+                transform=utm9n, zorder=15,
                 bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
 
     # Neatline (alternating black/white ladder border)
     draw_neatline(ax, n_segments=16, linewidth=6)
 
-    # Figure caption — left-aligned, poster font size, constrained to plot width
+    # Figure caption — left-aligned, poster font size, right edge aligned to colorbar
     import textwrap
+
+    # Get map and colorbar edges in figure fraction to set caption width
+    fig.canvas.draw()
+    map_left = ax.get_position().x0
+    map_right = cbar.ax.get_position().x1
+
     caption = (
         "Overview map of the Axial Seamount caldera showing all five hydrothermal vent fields: "
         "ASHES, Coquille, International District, Trevi, and CASM. "
-        "Bathymetry from 1-meter resolution AUV survey (MBARI, 2025) with 50-meter depth contours. "
-        "Yellow squares indicate vent field locations. "
+        "Bathymetry from 1-meter resolution AUV survey (MBARI, 2025) with 20-meter depth contours. "
+        "Markers indicate vent field locations. "
         "The caldera floor ranges from ~1520 m (International District) to ~1580 m (CASM) depth. "
-        "Coordinates in WGS84; UTM Zone 10N projection."
+        "Coordinates in WGS84; UTM Zone 9N projection."
     )
-    caption_wrapped = textwrap.fill(caption, width=72)
-    plot_left = 0.08
-    plot_width = 0.84
-    caption_ax = fig.add_axes([plot_left, 0.02, plot_width, 0.14])
+
+    # Calculate wrap width: caption_ax spans 0 to map_right in figure fraction,
+    # convert to inches, then estimate characters that fit at the caption font size
+    CAPTION_FONTSIZE = 18
+    caption_width_in = (map_right - map_left) * fig.get_size_inches()[0]
+    char_width_in = CAPTION_FONTSIZE / 72 * 0.50  # approximate char width for sans-serif
+    wrap_chars = int(caption_width_in / char_width_in)
+    caption_wrapped = textwrap.fill(caption, width=wrap_chars)
+
+    caption_ax = fig.add_axes([map_left, 0.02, map_right - map_left, 0.15])
     caption_ax.axis('off')
-    caption_ax.text(0.0, 1.0, caption_wrapped, ha="left", va="top", fontsize=18,
+    caption_ax.text(0.0, 1.0, caption_wrapped, ha="left", va="top",
+                    fontsize=CAPTION_FONTSIZE,
                     transform=caption_ax.transAxes,
                     family='sans-serif')
 
@@ -857,11 +885,12 @@ def main():
         print(f"  {name}: {info['field']}, {info['temp']}, {info['type']}")
     print()
 
-    # Map extent centered on caldera (same as botpt project)
+    # Map extent centered on caldera — trimmed 2 km inward from original edges
+    # At ~46°N: 2 km ≈ 0.026° lon, 0.018° lat
     center_lon = -130.008772
     center_lat = 45.95485
-    half_width = 0.064
-    half_height = 0.061
+    half_width = 0.038    # was 0.064, minus ~2 km (0.026°)
+    half_height = 0.043   # was 0.061, minus ~2 km (0.018°)
 
     extent = {
         'lon_min': center_lon - half_width,
@@ -879,7 +908,7 @@ def main():
     print("\n--- Generating standalone maps ---\n")
     plot_site_map(lon, lat, z, OUTPUT_DIR)
     # plot_ashes_map(lon, lat, z, OUTPUT_DIR)  # Replaced by make_ashes_map.py
-    plot_intl_district_map(lon, lat, z, OUTPUT_DIR)
+    # plot_intl_district_map(lon, lat, z, OUTPUT_DIR)  # No changes needed
     # plot_vent_map(lon, lat, z, OUTPUT_DIR)  # Retired
 
     print("\nDone!")
