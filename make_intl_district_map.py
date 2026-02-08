@@ -25,9 +25,11 @@ OUTPUT_DIR = Path(__file__).parent / "outputs" / "figures" / "poster"
 
 # International District vent locations (picked from 1cm bathymetry with UTM 9N projection)
 VENTS = {
-    "El Guapo":  {"lon": -129.979493, "lat": 45.926486, "type": "high-temp"},
-    "Tiny Tower": {"lon": -129.979186, "lat": 45.926314, "type": "high-temp"},
-    "Castle":    {"lon": -129.979996, "lat": 45.926218, "type": "high-temp"},
+    "El Guapo": {"lon": -129.979585, "lat": 45.926543, "type": "high-temp"},
+    "Escargot": {"lon": -129.979223, "lat": 45.926365, "type": "high-temp"},
+    "Castle": {"lon": -129.980102, "lat": 45.926212, "type": "high-temp"},
+    "Diva": {"lon": -129.979105, "lat": 45.926377, "type": "high-temp"},
+    "Flat Top": {"lon": -129.979836, "lat": 45.926141, "type": "high-temp"},
 }
 
 # Temperature classification colors (consistent with make_vent_map.py)
@@ -185,8 +187,10 @@ def plot_intl_district_map(x, y, z, output_path: Path, subsample: int = 1):
             # Position labels to avoid overlap
             label_offsets = {
                 "El Guapo": (15, 12),
-                "Tiny Tower": (-80, -18),
+                "Escargot": (-85, -18),
                 "Castle": (-75, 10),
+                "Diva": (15, -18),
+                "Flat Top": (-80, -18),
             }
             offset = label_offsets.get(name, (12, 5))
 
