@@ -902,14 +902,18 @@ def main():
     # Load bathymetry
     lon, lat, z = load_bathymetry(BATHY_PATH, subsample=1, extent=extent)
 
-    # Generate only the maps we need
-    # (ASHES detail is now produced by make_ashes_map.py at 1cm resolution)
-    # (Combined multi-panel map retired)
+    # Toggle which maps to generate (set to True/False as needed)
+    # ASHES detail is now produced by make_ashes_map.py at 1cm resolution
+    GENERATE = {
+        'site_overview': False,
+        'intl_district': False,
+    }
+
     print("\n--- Generating standalone maps ---\n")
-    plot_site_map(lon, lat, z, OUTPUT_DIR)
-    # plot_ashes_map(lon, lat, z, OUTPUT_DIR)  # Replaced by make_ashes_map.py
-    # plot_intl_district_map(lon, lat, z, OUTPUT_DIR)  # No changes needed
-    # plot_vent_map(lon, lat, z, OUTPUT_DIR)  # Retired
+    if GENERATE['site_overview']:
+        plot_site_map(lon, lat, z, OUTPUT_DIR)
+    if GENERATE['intl_district']:
+        plot_intl_district_map(lon, lat, z, OUTPUT_DIR)
 
     print("\nDone!")
 
