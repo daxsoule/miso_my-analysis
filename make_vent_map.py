@@ -13,21 +13,15 @@ Usage:
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 from matplotlib.colors import LightSource
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, FancyArrowPatch, ConnectionPatch
-from matplotlib.ticker import FuncFormatter
 import matplotlib.patches as mpatches
 from pathlib import Path
+import cartopy.crs as ccrs
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
-
-def format_lon(x, pos):
-    """Format longitude labels without scientific notation."""
-    return f'{x:.3f}'
-
-def format_lat(x, pos):
-    """Format latitude labels without scientific notation."""
-    return f'{x:.3f}'
 
 # Paths
 BATHY_PATH = Path("/home/jovyan/my_data/axial/axial_bathy/MBARI_AxialSeamount_V2506_AUV_Summit_AUVOverShip_Topo1mSq.grd")
@@ -108,9 +102,48 @@ VENT_TYPE_COLORS = {
     "intermittent": "#CC79A7",   # Reddish purple
 }
 
-# Scale factors
-LAT_PER_KM = 1 / 111.0
-LON_PER_KM = 1 / 77.0
+
+def draw_neatline(ax, n_segments=12, linewidth=6):
+    """Draw an alternating black/white ladder border (neatline) around the axes."""
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    width = xlim[1] - xlim[0]
+    height = ylim[1] - ylim[0]
+
+    seg_w = width / n_segments
+    seg_h = height / n_segments
+
+    # Draw solid black border first (wider) as the base
+    for edge in ['bottom', 'top', 'left', 'right']:
+        if edge == 'bottom':
+            xs, ys = [xlim[0], xlim[1]], [ylim[0], ylim[0]]
+        elif edge == 'top':
+            xs, ys = [xlim[0], xlim[1]], [ylim[1], ylim[1]]
+        elif edge == 'left':
+            xs, ys = [xlim[0], xlim[0]], [ylim[0], ylim[1]]
+        else:
+            xs, ys = [xlim[1], xlim[1]], [ylim[0], ylim[1]]
+        ax.plot(xs, ys, color='black', linewidth=linewidth + 2,
+                transform=ax.transData, clip_on=False, zorder=19,
+                solid_capstyle='butt')
+
+    # Overlay alternating black/white segments
+    for i in range(n_segments):
+        color = 'black' if i % 2 == 0 else 'white'
+        ax.plot([xlim[0] + i * seg_w, xlim[0] + (i + 1) * seg_w],
+                [ylim[0], ylim[0]], color=color, linewidth=linewidth,
+                transform=ax.transData, clip_on=False, zorder=20, solid_capstyle='butt')
+        ax.plot([xlim[0] + i * seg_w, xlim[0] + (i + 1) * seg_w],
+                [ylim[1], ylim[1]], color=color, linewidth=linewidth,
+                transform=ax.transData, clip_on=False, zorder=20, solid_capstyle='butt')
+        ax.plot([xlim[0], xlim[0]],
+                [ylim[0] + i * seg_h, ylim[0] + (i + 1) * seg_h],
+                color=color, linewidth=linewidth,
+                transform=ax.transData, clip_on=False, zorder=20, solid_capstyle='butt')
+        ax.plot([xlim[1], xlim[1]],
+                [ylim[0] + i * seg_h, ylim[0] + (i + 1) * seg_h],
+                color=color, linewidth=linewidth,
+                transform=ax.transData, clip_on=False, zorder=20, solid_capstyle='butt')
 
 
 def load_bathymetry(path: Path, subsample: int = 1, extent: dict = None) -> tuple:
@@ -139,28 +172,67 @@ def load_bathymetry(path: Path, subsample: int = 1, extent: dict = None) -> tupl
     return lon, lat, z
 
 
-def plot_shaded_relief(ax, lon, lat, z, extent=None, add_contours=True, contour_labels=True):
-    """Plot shaded relief on an axis."""
+def plot_shaded_relief(ax, lon, lat, z, extent=None, add_contours=True,
+                       contour_labels=True, utm_crs=None, data_crs=None):
+    """Plot shaded relief on an axis.
+
+    When utm_crs and data_crs are provided, transforms coordinates to UTM
+    for proper projected display. Otherwise works in raw lon/lat.
+    """
     ls = LightSource(azdeg=315, altdeg=45)
     z_min, z_max = np.nanpercentile(z, [2, 98])
 
     rgb = ls.shade(z, cmap=plt.cm.terrain, blend_mode='soft',
                    vmin=z_min, vmax=z_max)
 
-    ax.imshow(rgb, extent=[lon.min(), lon.max(), lat.min(), lat.max()],
-              origin='lower', aspect='equal')
+    if utm_crs is not None and data_crs is not None:
+        # Transform corner coordinates to UTM for imshow extent
+        corner_lons = np.array([lon.min(), lon.max(), lon.max(), lon.min()])
+        corner_lats = np.array([lat.min(), lat.min(), lat.max(), lat.max()])
+        corners_utm = utm_crs.transform_points(data_crs, corner_lons, corner_lats)
+        x_utm_min = corners_utm[:, 0].min()
+        x_utm_max = corners_utm[:, 0].max()
+        y_utm_min = corners_utm[:, 1].min()
+        y_utm_max = corners_utm[:, 1].max()
 
-    if add_contours:
-        lon_grid, lat_grid = np.meshgrid(lon, lat)
-        contour_levels = np.arange(-2200, -1400, 50)
-        cs = ax.contour(lon_grid, lat_grid, z, levels=contour_levels,
-                        colors='black', linewidths=0.3, alpha=0.5)
-        if contour_labels:
-            ax.clabel(cs, levels=contour_levels[::2], fontsize=7, fmt='%d m', inline=True)
+        ax.imshow(rgb, extent=[x_utm_min, x_utm_max, y_utm_min, y_utm_max],
+                  origin='lower', transform=utm_crs)
 
-    if extent:
-        ax.set_xlim(extent['lon_min'], extent['lon_max'])
-        ax.set_ylim(extent['lat_min'], extent['lat_max'])
+        if add_contours:
+            lon_grid, lat_grid = np.meshgrid(lon, lat)
+            pts = utm_crs.transform_points(data_crs, lon_grid, lat_grid)
+            x_utm_grid = pts[:, :, 0]
+            y_utm_grid = pts[:, :, 1]
+            contour_levels = np.arange(-2200, -1400, 50)
+            cs = ax.contour(x_utm_grid, y_utm_grid, z, levels=contour_levels,
+                            colors='black', linewidths=0.3, alpha=0.5,
+                            transform=utm_crs)
+            if contour_labels:
+                ax.clabel(cs, levels=contour_levels[::2], fontsize=7,
+                          fmt='%d m', inline=True)
+
+        if extent:
+            ext_lons = np.array([extent['lon_min'], extent['lon_max']])
+            ext_lats = np.array([extent['lat_min'], extent['lat_max']])
+            ext_utm = utm_crs.transform_points(data_crs, ext_lons, ext_lats)
+            ax.set_xlim(ext_utm[0, 0], ext_utm[1, 0])
+            ax.set_ylim(ext_utm[0, 1], ext_utm[1, 1])
+    else:
+        ax.imshow(rgb, extent=[lon.min(), lon.max(), lat.min(), lat.max()],
+                  origin='lower', aspect='equal')
+
+        if add_contours:
+            lon_grid, lat_grid = np.meshgrid(lon, lat)
+            contour_levels = np.arange(-2200, -1400, 50)
+            cs = ax.contour(lon_grid, lat_grid, z, levels=contour_levels,
+                            colors='black', linewidths=0.3, alpha=0.5)
+            if contour_labels:
+                ax.clabel(cs, levels=contour_levels[::2], fontsize=7,
+                          fmt='%d m', inline=True)
+
+        if extent:
+            ax.set_xlim(extent['lon_min'], extent['lon_max'])
+            ax.set_ylim(extent['lat_min'], extent['lat_max'])
 
     return z_min, z_max
 
@@ -170,10 +242,17 @@ def plot_site_map(lon, lat, z, output_path: Path):
 
     print("Creating site overview map...")
 
-    fig, ax = plt.subplots(figsize=(10, 10))
+    # UTM zone 10N for Axial Seamount (~130°W, ~46°N)
+    utm10n = ccrs.UTM(zone=10, southern_hemisphere=False)
+    data_crs = ccrs.PlateCarree()
+
+    fig = plt.figure(figsize=(10, 12))
+    ax = fig.add_axes([0.08, 0.20, 0.84, 0.72], projection=utm10n)
 
     # Plot shaded relief with contours
-    z_min, z_max = plot_shaded_relief(ax, lon, lat, z, add_contours=True, contour_labels=True)
+    z_min, z_max = plot_shaded_relief(ax, lon, lat, z, add_contours=True,
+                                       contour_labels=True,
+                                       utm_crs=utm10n, data_crs=data_crs)
 
     # All vent fields including CASM
     all_vent_fields = {
@@ -184,7 +263,7 @@ def plot_site_map(lon, lat, z, output_path: Path):
         "CASM": {"lon": -(130 + 1.632/60), "lat": 45 + 59.332/60},
     }
 
-    # Label offsets for each field
+    # Label offsets for each field (in screen points)
     label_offsets = {
         "ASHES": (-65, 5),
         "Coquille": (10, -15),
@@ -196,10 +275,12 @@ def plot_site_map(lon, lat, z, output_path: Path):
     # Plot vent field markers
     for field_name, field_info in all_vent_fields.items():
         ax.plot(field_info['lon'], field_info['lat'], 's', markersize=14,
-                color='yellow', markeredgecolor='black', markeredgewidth=2, zorder=8)
+                color='yellow', markeredgecolor='black', markeredgewidth=2,
+                zorder=8, transform=data_crs)
 
         offset = label_offsets.get(field_name, (10, 5))
         ax.annotate(field_name, (field_info['lon'], field_info['lat']),
+                    xycoords=data_crs._as_mpl_transform(ax),
                     xytext=offset, textcoords='offset points',
                     fontsize=11, fontweight='bold', style='italic',
                     bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow',
@@ -213,14 +294,17 @@ def plot_site_map(lon, lat, z, output_path: Path):
     cbar = plt.colorbar(sm, ax=ax, shrink=0.7, pad=0.02)
     cbar.set_label('Depth (m)', fontsize=11)
 
-    # Scale bar (1 km)
-    scale_lon = lon.min() + 0.005
-    scale_lat = lat.min() + 0.005
-    scale_length = 1.0 * LON_PER_KM
-    ax.plot([scale_lon, scale_lon + scale_length], [scale_lat, scale_lat],
-            'k-', linewidth=4)
-    ax.text(scale_lon + scale_length/2, scale_lat + 0.003, '1 km',
-            ha='center', fontsize=10, fontweight='bold',
+    # Scale bar (1 km) — true meters via UTM
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    vis_w = xlim[1] - xlim[0]
+    vis_h = ylim[1] - ylim[0]
+    scale_x = xlim[0] + vis_w * 0.05
+    scale_y = ylim[0] + vis_h * 0.05
+    ax.plot([scale_x, scale_x + 1000], [scale_y, scale_y],
+            'k-', linewidth=4, transform=utm10n)
+    ax.text(scale_x + 500, scale_y + vis_h * 0.02, '1 km',
+            ha='center', fontsize=10, fontweight='bold', transform=utm10n,
             bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
 
     # Legend
@@ -231,15 +315,55 @@ def plot_site_map(lon, lat, z, output_path: Path):
     ]
     ax.legend(handles=legend_elements, loc='lower right', fontsize=10, framealpha=0.95)
 
-    ax.set_xlabel('Longitude', fontsize=11)
-    ax.set_ylabel('Latitude', fontsize=11)
     ax.set_title('Axial Seamount Caldera\nHydrothermal Vent Fields', fontsize=14, fontweight='bold')
-    ax.grid(True, alpha=0.3, linestyle='--', color='white')
 
-    plt.tight_layout()
+    # Lat/lon gridlines with labels (replaces ax.grid + FuncFormatter)
+    gl = ax.gridlines(crs=data_crs, draw_labels=True,
+                      linewidth=0.5, color='white', alpha=0.3, linestyle='--')
+    gl.top_labels = False
+    gl.right_labels = False
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'size': 9, 'rotation': 0}
+    gl.ylabel_style = {'size': 9}
+    gl.xpadding = 12
+    gl.ypadding = 12
+
+    # North arrow (upper right) — positioned in UTM coordinates
+    arrow_x = xlim[1] - vis_w * 0.08
+    arrow_y = ylim[1] - vis_h * 0.04
+    arrow_len = vis_h * 0.07
+    ax.annotate('N', xy=(arrow_x, arrow_y),
+                xytext=(arrow_x, arrow_y - arrow_len),
+                fontsize=12, fontweight='bold', ha='center', va='bottom',
+                arrowprops=dict(arrowstyle='->', color='black', lw=2),
+                transform=utm10n, zorder=15,
+                bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
+
+    # Neatline (alternating black/white ladder border)
+    draw_neatline(ax, n_segments=16, linewidth=6)
+
+    # Figure caption — left-aligned, poster font size, constrained to plot width
+    import textwrap
+    caption = (
+        "Overview map of the Axial Seamount caldera showing all five hydrothermal vent fields: "
+        "ASHES, Coquille, International District, Trevi, and CASM. "
+        "Bathymetry from 1-meter resolution AUV survey (MBARI, 2025) with 50-meter depth contours. "
+        "Yellow squares indicate vent field locations. "
+        "The caldera floor ranges from ~1520 m (International District) to ~1580 m (CASM) depth. "
+        "Coordinates in WGS84; UTM Zone 10N projection."
+    )
+    caption_wrapped = textwrap.fill(caption, width=72)
+    plot_left = 0.08
+    plot_width = 0.84
+    caption_ax = fig.add_axes([plot_left, 0.02, plot_width, 0.14])
+    caption_ax.axis('off')
+    caption_ax.text(0.0, 1.0, caption_wrapped, ha="left", va="top", fontsize=18,
+                    transform=caption_ax.transAxes,
+                    family='sans-serif')
 
     output_file = output_path / "map_site_overview.png"
-    plt.savefig(output_file, dpi=300, facecolor='white', bbox_inches='tight')
+    fig.savefig(output_file, dpi=300, facecolor='white', bbox_inches='tight')
     plt.close()
     print(f"Saved: {output_file}")
     return output_file
@@ -346,11 +470,16 @@ def plot_intl_district_map(lon, lat, z, output_path: Path):
 
     print("Creating Int'l District detail map...")
 
+    # UTM zone 10N for Axial Seamount (~130°W, ~46°N)
+    utm10n = ccrs.UTM(zone=10, southern_hemisphere=False)
+    data_crs = ccrs.PlateCarree()
+
     # Int'l District extent (~150m around cluster center)
     center_lon, center_lat = -129.9795, 45.9263
     half_size = 0.002  # ~150m
 
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig = plt.figure(figsize=(8, 10))
+    ax = fig.add_axes([0.08, 0.20, 0.84, 0.72], projection=utm10n)
 
     extent = {
         'lon_min': center_lon - half_size,
@@ -359,16 +488,17 @@ def plot_intl_district_map(lon, lat, z, output_path: Path):
         'lat_max': center_lat + half_size,
     }
 
-    plot_shaded_relief(ax, lon, lat, z, extent=extent, add_contours=False)
+    plot_shaded_relief(ax, lon, lat, z, extent=extent, add_contours=False,
+                       utm_crs=utm10n, data_crs=data_crs)
 
     # Int'l District vents
     intl_vents = ["El Guapo", "Tiny Tower", "Castle"]
 
-    # Label positions
-    label_positions = {
-        "El Guapo": (0.0008, 0.0006),
-        "Tiny Tower": (-0.0013, 0.0002),
-        "Castle": (0.0007, -0.0006),
+    # Label offsets in screen points
+    label_offsets = {
+        "El Guapo": (15, 12),
+        "Tiny Tower": (-70, 5),
+        "Castle": (15, -15),
     }
 
     for name in intl_vents:
@@ -377,13 +507,14 @@ def plot_intl_district_map(lon, lat, z, output_path: Path):
             color = VENT_TYPE_COLORS[info['type']]
 
             ax.plot(info['lon'], info['lat'], 'o', markersize=14,
-                   color=color, markeredgecolor='white', markeredgewidth=2, zorder=8)
+                   color=color, markeredgecolor='white', markeredgewidth=2,
+                   zorder=8, transform=data_crs)
 
-            dx, dy = label_positions.get(name, (0.0007, 0.0007))
+            offset = label_offsets.get(name, (12, 5))
             ax.annotate(
                 name, (info['lon'], info['lat']),
-                xytext=(info['lon'] + dx, info['lat'] + dy),
-                textcoords='data',
+                xycoords=data_crs._as_mpl_transform(ax),
+                xytext=offset, textcoords='offset points',
                 fontsize=11, fontweight='bold',
                 bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
                          alpha=0.95, edgecolor='gray', linewidth=1),
@@ -392,14 +523,17 @@ def plot_intl_district_map(lon, lat, z, output_path: Path):
                 zorder=11
             )
 
-    # Scale bar (50m)
-    scale_m = 50
-    scale_deg = scale_m / 77000
-    scale_x = extent['lon_min'] + 0.0003
-    scale_y = extent['lat_min'] + 0.0003
-    ax.plot([scale_x, scale_x + scale_deg], [scale_y, scale_y], 'k-', linewidth=4)
-    ax.text(scale_x + scale_deg/2, scale_y + 0.00025, f'{scale_m} m',
-            ha='center', fontsize=10, fontweight='bold',
+    # Scale bar (50m) — true meters via UTM
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    vis_w = xlim[1] - xlim[0]
+    vis_h = ylim[1] - ylim[0]
+    scale_x = xlim[0] + vis_w * 0.05
+    scale_y = ylim[0] + vis_h * 0.05
+    ax.plot([scale_x, scale_x + 50], [scale_y, scale_y],
+            'k-', linewidth=4, transform=utm10n)
+    ax.text(scale_x + 25, scale_y + vis_h * 0.03, '50 m',
+            ha='center', fontsize=10, fontweight='bold', transform=utm10n,
             bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
 
     # Legend
@@ -419,18 +553,52 @@ def plot_intl_district_map(lon, lat, z, output_path: Path):
     ]
     ax.legend(handles=legend_elements, loc='lower right', fontsize=9, framealpha=0.95)
 
-    ax.set_xlabel('Longitude', fontsize=11)
-    ax.set_ylabel('Latitude', fontsize=11)
-    ax.set_title("International District Vent Field\nMISO Sensor Locations", fontsize=14, fontweight='bold')
+    ax.set_title("International District Vent Field\nMISO Sensor Locations",
+                 fontsize=14, fontweight='bold')
 
-    # Format axis labels without scientific notation
-    ax.xaxis.set_major_formatter(FuncFormatter(format_lon))
-    ax.yaxis.set_major_formatter(FuncFormatter(format_lat))
+    # Lat/lon gridlines with labels (replaces FuncFormatter + set_xlabel/set_ylabel)
+    gl = ax.gridlines(crs=data_crs, draw_labels=True,
+                      linewidth=0.5, color='white', alpha=0.3, linestyle='--')
+    gl.top_labels = False
+    gl.right_labels = False
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'size': 9, 'rotation': 0}
+    gl.ylabel_style = {'size': 9}
+    gl.xpadding = 12
+    gl.ypadding = 12
 
-    plt.tight_layout()
+    # North arrow (upper right) — positioned in UTM coordinates
+    arrow_x = xlim[1] - vis_w * 0.08
+    arrow_y = ylim[1] - vis_h * 0.04
+    arrow_len = vis_h * 0.07
+    ax.annotate('N', xy=(arrow_x, arrow_y),
+                xytext=(arrow_x, arrow_y - arrow_len),
+                fontsize=12, fontweight='bold', ha='center', va='bottom',
+                arrowprops=dict(arrowstyle='->', color='black', lw=2),
+                transform=utm10n, zorder=15,
+                bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
+
+    # Neatline (alternating black/white ladder border)
+    draw_neatline(ax, n_segments=12, linewidth=6)
+
+    # Figure caption
+    import textwrap
+    caption = (
+        "International District vent field at Axial Seamount. Bathymetry from "
+        "1-meter resolution AUV survey (MBARI, 2025). Markers indicate vent "
+        "locations colored by temperature classification from the 2024\u20132025 "
+        "MISO deployment (see legend). Coordinates in WGS84; UTM Zone 10N projection."
+    )
+    caption_wrapped = textwrap.fill(caption, width=60)
+    caption_ax = fig.add_axes([0.08, 0.02, 0.84, 0.16])
+    caption_ax.axis('off')
+    caption_ax.text(0.0, 1.0, caption_wrapped, ha="left", va="top",
+                    fontsize=18, transform=caption_ax.transAxes,
+                    family='sans-serif')
 
     output_file = output_path / "map_intl_district_detail.png"
-    plt.savefig(output_file, dpi=300, facecolor='white', bbox_inches='tight')
+    fig.savefig(output_file, dpi=300, facecolor='white', bbox_inches='tight')
     plt.close()
     print(f"Saved: {output_file}")
     return output_file
@@ -705,15 +873,14 @@ def main():
     # Load bathymetry
     lon, lat, z = load_bathymetry(BATHY_PATH, subsample=1, extent=extent)
 
-    # Create three standalone maps
+    # Generate only the maps we need
+    # (ASHES detail is now produced by make_ashes_map.py at 1cm resolution)
+    # (Combined multi-panel map retired)
     print("\n--- Generating standalone maps ---\n")
     plot_site_map(lon, lat, z, OUTPUT_DIR)
-    plot_ashes_map(lon, lat, z, OUTPUT_DIR)
+    # plot_ashes_map(lon, lat, z, OUTPUT_DIR)  # Replaced by make_ashes_map.py
     plot_intl_district_map(lon, lat, z, OUTPUT_DIR)
-
-    # Also create combined multi-panel map
-    print("\n--- Generating combined multi-panel map ---\n")
-    plot_vent_map(lon, lat, z, OUTPUT_DIR)
+    # plot_vent_map(lon, lat, z, OUTPUT_DIR)  # Retired
 
     print("\nDone!")
 

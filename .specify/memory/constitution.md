@@ -18,12 +18,11 @@ permeability.
   vent field?
 
 **Vent fields studied:**
-- ASHES (Inferno, Hell, Virgin, Trevi/Mkr156, Vixen/Mkr218)
-- International District (Hell, El Guapo, El Guapo Top)
-- Coquille (Casper, Vixen)
-- CASM
-
-Note: "Hell" exists as distinct vents in both ASHES and International District.
+- ASHES (Inferno, Hell, Virgin, Phoenix)
+- International District (El Guapo, Tiny Tower, Castle)
+- Trevi (Trevi/Mkr156)
+- Coquille (Vixen/Mkr218)
+- CASM (T&S/Shepherd)
 
 **Vent field coordinates:**
 
@@ -45,14 +44,15 @@ Decimal degrees (for code):
 | International District | 45.9263 | -129.9790 | 1522 |
 | Trevi | 45.9463 | -129.9838 | 1520 |
 
-**Individual vent coordinates:**
+**Individual vent coordinates (ASHES vents picked from 1cm bathymetry):**
 
 | Vent | Vent Field | Longitude | Latitude | 2024 Logger |
 |------|------------|-----------|----------|-------------|
-| Inferno | ASHES | -130.013674 | 45.933566 | MISO 2023-005 |
-| Hell | ASHES | -130.013943 | 45.933307 | MISO 2023-002 |
-| Virgin | ASHES | -130.013237 | 45.933624 | MISO 2023-007 |
-| Phoenix | ASHES | -130.0136515 | 45.93327021 | |
+| Virgin | ASHES | -130.013490 | 45.933585 | MISO 2023-007 |
+| Mushroom | ASHES | -130.013757 | 45.933563 | |
+| Inferno | ASHES | -130.013863 | 45.933519 | MISO 2023-005 |
+| Hell | ASHES | -130.014137 | 45.933272 | MISO 2023-002 |
+| Phoenix | ASHES | -130.013855 | 45.933208 | |
 | Vixen/Mkr218 | Coquille | -129.99295 | 45.91733 | MISO 2023-012 |
 | El Guapo | International District | -129.979493 | 45.926486 | MISO 2023-009 |
 | Tiny Tower | International District | -129.979186 | 45.926314 | MISO 2017-002 |
@@ -192,6 +192,19 @@ merged = bpr.join(eq, how='inner').join(tmpsf, how='inner')
 - **Organization**: All figures must go in one of two folders:
   - `outputs/figures/poster/` — Publication-ready figures for presentations and papers
   - `outputs/figures/exploratory/` — Working figures for data exploration and analysis
+
+## Figure Evaluation
+
+This project adopts the shared evaluation rubrics at `../../specs/rubrics/`.
+
+| Rubric | Adopted | Sizing Tier | Project Scorecard |
+|--------|---------|-------------|-------------------|
+| Map evaluation | Yes | Poster | `specs/map-scorecard.md` |
+| Time series evaluation | Yes | Poster | `specs/timeseries-scorecard.md` |
+
+- **Event annotation convention**: red dashed = eruption, gray dotted = cruise/servicing
+- **Projection**: UTM Zone 10N (PI-specified for all maps)
+- **Color palette**: Okabe-Ito for categorical distinctions; terrain colormap for bathymetry
 
 ## Quality Checks
 
