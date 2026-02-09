@@ -622,12 +622,12 @@ def make_composite_map():
     # (c) title sits in the gap between (b) and (c).
     # Panel (a) enlarged and shifted right to tighten layout.
     #
-    #   Panel (a): left=0.04, bottom=0.18, top=0.90  (height 0.72, width 0.40)  — title above
+    #   Panel (a): left=0.08, bottom=0.18, top=0.90  (height 0.72, width 0.40)  — title above
     #   Panel (b): left=0.44, bottom=0.59, top=0.90  (height 0.31, width 0.38)  — top flush w/ (a), title above
     #   Panel (c): left=0.44, bottom=0.18, top=0.49  (height 0.31, width 0.38)  — bottom flush w/ (a), title in gap
     #   Gap between (b) and (c): 0.59 - 0.49 = 0.10 (holds (c) title)
 
-    ax1 = fig.add_axes([0.04, 0.18, 0.40, 0.72], projection=utm9n)   # (a) - wider, shifted right
+    ax1 = fig.add_axes([0.08, 0.18, 0.40, 0.72], projection=utm9n)   # (a) - wider, shifted right
     ax2 = fig.add_axes([0.44, 0.59, 0.38, 0.31], projection=utm9n)   # (b)
     ax3 = fig.add_axes([0.44, 0.18, 0.38, 0.31], projection=utm9n)   # (c)
 
@@ -656,8 +656,8 @@ def make_composite_map():
     cbar.ax.tick_params(labelsize=11)
 
     # --- Flowing caption (constrained to colorbar inner edge) ---
-    caption_width = cax_left - 0.04   # from left margin (0.04) to colorbar inner edge
-    caption_ax = fig.add_axes([0.04, 0.005, caption_width, 0.11])
+    caption_width = cax_left - 0.08   # from left margin (0.08) to colorbar inner edge
+    caption_ax = fig.add_axes([0.08, 0.005, caption_width, 0.11])
     caption_ax.axis('off')
 
     caption_text = (
