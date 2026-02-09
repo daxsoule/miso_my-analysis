@@ -18,7 +18,7 @@ EQ_PATH = Path("/home/jovyan/repos/specKitScience/earthquakes_my-analysis/output
 
 OUTPUT_DIR = Path(__file__).parent / "outputs"
 DATA_DIR = OUTPUT_DIR / "data"
-FIG_DIR = OUTPUT_DIR / "figures"
+FIG_DIR = OUTPUT_DIR / "figures" / "exploratory"
 
 # Vent configurations
 VENTS = {
