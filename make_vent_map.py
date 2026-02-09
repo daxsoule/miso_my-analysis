@@ -11,6 +11,8 @@ Usage:
 """
 
 import numpy as np
+import pandas as pd
+import geopandas as gpd
 import xarray as xr
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
@@ -26,6 +28,8 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 # Paths
 BATHY_PATH = Path("/home/jovyan/my_data/axial/axial_bathy/MBARI_AxialSeamount_V2506_AUV_Summit_AUVOverShip_Topo1mSq.grd")
+LAVA_FLOW_2011_PATH = Path("/home/jovyan/my_data/axial/axial_bathy/2011_EruptionOutline/Axial-2011-lava-geo-v2.shp")
+LAVA_FLOW_2015_PATH = Path("/home/jovyan/my_data/axial/axial_bathy/2015_eruptionOutline/JDF_AxialClague/Axial-2015-lava-geo-v2.shp")
 OUTPUT_DIR = Path("/home/jovyan/repos/specKitScience/miso_my-analysis/outputs/figures/poster/miso_maps")
 
 # Vent field coordinates (from user-provided table)
@@ -257,6 +261,70 @@ def plot_site_map(lon, lat, z, output_path: Path):
                                        utm_crs=utm9n, data_crs=data_crs,
                                        contour_interval=20,
                                        contour_label_every=5)
+
+    # 2011 lava flow - 12 individual features with white/light gray intensity by area
+    lava_2011_gdf = gpd.read_file(LAVA_FLOW_2011_PATH)
+    areas_2011 = lava_2011_gdf['Area'].values
+    min_area_2011, max_area_2011 = areas_2011.min(), areas_2011.max()
+    alphas_2011 = 0.25 + 0.35 * (areas_2011 - min_area_2011) / (max_area_2011 - min_area_2011)
+
+    for idx, (geom, alpha) in enumerate(zip(lava_2011_gdf.geometry, alphas_2011)):
+        if geom.geom_type == 'Polygon':
+            coords = list(geom.exterior.coords)
+            lons = [c[0] for c in coords]
+            lats = [c[1] for c in coords]
+            ax.fill(lons, lats, transform=data_crs,
+                   color='white', alpha=alpha, edgecolor='none', linewidth=0, zorder=3)
+        elif geom.geom_type == 'MultiPolygon':
+            for poly in geom.geoms:
+                coords = list(poly.exterior.coords)
+                lons = [c[0] for c in coords]
+                lats = [c[1] for c in coords]
+                ax.fill(lons, lats, transform=data_crs,
+                       color='white', alpha=alpha, edgecolor='none', linewidth=0, zorder=3)
+
+    flow_2011_union = lava_2011_gdf.union_all()
+    if flow_2011_union.geom_type == 'Polygon':
+        outline_coords = list(flow_2011_union.exterior.coords)
+        ax.plot([c[0] for c in outline_coords], [c[1] for c in outline_coords],
+               transform=data_crs, color='white', linewidth=2.5, linestyle='-', zorder=4)
+    elif flow_2011_union.geom_type == 'MultiPolygon':
+        for poly in flow_2011_union.geoms:
+            outline_coords = list(poly.exterior.coords)
+            ax.plot([c[0] for c in outline_coords], [c[1] for c in outline_coords],
+                   transform=data_crs, color='white', linewidth=2.5, linestyle='-', zorder=4)
+
+    # 2015 lava flow - 12 individual features with orange intensity by area
+    lava_2015_gdf = gpd.read_file(LAVA_FLOW_2015_PATH)
+    areas_2015 = lava_2015_gdf['Area'].values
+    min_area_2015, max_area_2015 = areas_2015.min(), areas_2015.max()
+    alphas_2015 = 0.3 + 0.4 * (areas_2015 - min_area_2015) / (max_area_2015 - min_area_2015)
+
+    for idx, (geom, alpha) in enumerate(zip(lava_2015_gdf.geometry, alphas_2015)):
+        if geom.geom_type == 'Polygon':
+            coords = list(geom.exterior.coords)
+            lons = [c[0] for c in coords]
+            lats = [c[1] for c in coords]
+            ax.fill(lons, lats, transform=data_crs,
+                   color='#D55E00', alpha=alpha, edgecolor='none', linewidth=0, zorder=5)
+        elif geom.geom_type == 'MultiPolygon':
+            for poly in geom.geoms:
+                coords = list(poly.exterior.coords)
+                lons = [c[0] for c in coords]
+                lats = [c[1] for c in coords]
+                ax.fill(lons, lats, transform=data_crs,
+                       color='#D55E00', alpha=alpha, edgecolor='none', linewidth=0, zorder=5)
+
+    flow_2015_union = lava_2015_gdf.union_all()
+    if flow_2015_union.geom_type == 'Polygon':
+        outline_coords = list(flow_2015_union.exterior.coords)
+        ax.plot([c[0] for c in outline_coords], [c[1] for c in outline_coords],
+               transform=data_crs, color='#D55E00', linewidth=2.5, linestyle='-', zorder=6)
+    elif flow_2015_union.geom_type == 'MultiPolygon':
+        for poly in flow_2015_union.geoms:
+            outline_coords = list(poly.exterior.coords)
+            ax.plot([c[0] for c in outline_coords], [c[1] for c in outline_coords],
+                   transform=data_crs, color='#D55E00', linewidth=2.5, linestyle='-', zorder=6)
 
     # All vent fields including CASM
     all_vent_fields = {
