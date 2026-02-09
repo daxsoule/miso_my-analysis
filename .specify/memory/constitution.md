@@ -44,21 +44,23 @@ Decimal degrees (for code):
 | International District | 45.9263 | -129.9790 | 1522 |
 | Trevi | 45.9463 | -129.9838 | 1520 |
 
-**Individual vent coordinates (ASHES vents picked from 1cm bathymetry):**
+**Individual vent coordinates (1cm LASS lidar picks, MBARI 2025):**
 
-| Vent | Vent Field | Longitude | Latitude | 2024 Logger |
-|------|------------|-----------|----------|-------------|
-| Virgin | ASHES | -130.013490 | 45.933585 | MISO 2023-007 |
-| Mushroom | ASHES | -130.013757 | 45.933563 | |
-| Inferno | ASHES | -130.013863 | 45.933519 | MISO 2023-005 |
-| Hell | ASHES | -130.014137 | 45.933272 | MISO 2023-002 |
-| Phoenix | ASHES | -130.013855 | 45.933208 | |
-| Vixen/Mkr218 | Coquille | -129.99295 | 45.91733 | MISO 2023-012 |
-| El Guapo | International District | -129.979493 | 45.926486 | MISO 2023-009 |
-| Tiny Tower | International District | -129.979186 | 45.926314 | MISO 2017-002 |
-| Trevi/Mkr156 | Trevi | -129.983713 | 45.946276 | MISO 2023-010 |
-| T&S or Shepherd | CASM | -130.027294 | 45.989202 | |
-| Castle-Mkr278 | International District | -129.979996 | 45.926218 | MISO 103 |
+| Vent | Vent Field | Longitude | Latitude | 2024 Logger | Type |
+|------|------------|-----------|----------|-------------|------|
+| Inferno | ASHES | -130.013865 | 45.933519 | MISO 2023-005 | High-temp |
+| Hell | ASHES | -130.014140 | 45.933272 | MISO 2023-002 | Low-temp |
+| Virgin | ASHES | -130.013447 | 45.933615 | MISO 2023-007 | Intermittent |
+| Phoenix | ASHES | -130.013852 | 45.933217 | | No data |
+| Mushroom | ASHES | -130.013757 | 45.933563 | | No data |
+| El Guapo | International District | -129.979585 | 45.926543 | MISO 2023-009 | High-temp |
+| Escargot | International District | -129.979223 | 45.926365 | | High-temp |
+| Castle | International District | -129.980102 | 45.926212 | MISO 103 | High-temp |
+| Diva | International District | -129.979105 | 45.926377 | | High-temp |
+| Flat Top | International District | -129.979836 | 45.926141 | | High-temp |
+| Vixen/Mkr218 | Coquille | -129.99295 | 45.91733 | MISO 2023-012 | Low-temp |
+| Trevi/Mkr156 | Trevi | -129.983713 | 45.946276 | MISO 2023-010 | Intermittent |
+| T&S or Shepherd | CASM | -130.027294 | 45.989202 | | High-temp |
 
 **Related projects:**
 - `../my-analysis_botpt/` - Differential uplift (volcanic deformation)
@@ -203,7 +205,7 @@ This project adopts the shared evaluation rubrics at `../../specs/rubrics/`.
 | Time series evaluation | Yes | Poster | `specs/timeseries-scorecard.md` |
 
 - **Event annotation convention**: red dashed = eruption, gray dotted = cruise/servicing
-- **Projection**: UTM Zone 10N (PI-specified for all maps)
+- **Projection**: UTM Zone 9N (WGS84) for Axial Seamount (~130°W longitude)
 - **Color palette**: Okabe-Ito for categorical distinctions; terrain colormap for bathymetry
 
 ## Quality Checks
