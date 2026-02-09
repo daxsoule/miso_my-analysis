@@ -21,6 +21,8 @@ Usage:
 import gc
 import textwrap
 import numpy as np
+import pandas as pd
+import geopandas as gpd
 import xarray as xr
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
@@ -44,6 +46,14 @@ BATHY_ASHES_PATH = Path(
 BATHY_INTL_PATH = Path(
     "/home/jovyan/my_data/axial/axial_bathy/"
     "MBARI_AxialSeamount_V2506_LASSlidar_IntlDist_Topo1cmSq.grd"
+)
+LAVA_FLOW_2011_PATH = Path(
+    "/home/jovyan/my_data/axial/axial_bathy/"
+    "2011_EruptionOutline/Axial-2011-lava-geo-v2.shp"
+)
+LAVA_FLOW_2015_PATH = Path(
+    "/home/jovyan/my_data/axial/axial_bathy/"
+    "2015_eruptionOutline/JDF_AxialClague/Axial-2015-lava-geo-v2.shp"
 )
 OUTPUT_DIR = Path(__file__).parent / "outputs" / "figures" / "poster" / "miso_maps"
 
@@ -223,6 +233,92 @@ def render_site_overview(fig, ax):
     ext_utm = utm9n.transform_points(data_crs, ext_lons, ext_lats)
     ax.set_xlim(ext_utm[0, 0], ext_utm[1, 0])
     ax.set_ylim(ext_utm[0, 1], ext_utm[1, 1])
+
+    # 2011 lava flow - 12 individual features with white/light gray intensity by area
+    lava_2011_gdf = gpd.read_file(LAVA_FLOW_2011_PATH)
+
+    # Normalize areas for color intensity (0.25 to 0.6 alpha range)
+    areas_2011 = lava_2011_gdf['Area'].values
+    min_area_2011, max_area_2011 = areas_2011.min(), areas_2011.max()
+    alphas_2011 = 0.25 + 0.35 * (areas_2011 - min_area_2011) / (max_area_2011 - min_area_2011)
+
+    # Plot each 2011 flow feature with white/light color
+    for idx, (geom, alpha) in enumerate(zip(lava_2011_gdf.geometry, alphas_2011)):
+        if geom.geom_type == 'Polygon':
+            coords = list(geom.exterior.coords)
+            lons = [c[0] for c in coords]
+            lats = [c[1] for c in coords]
+            ax.fill(lons, lats, transform=data_crs,
+                   color='white', alpha=alpha, edgecolor='none',
+                   linewidth=0, zorder=3)
+        elif geom.geom_type == 'MultiPolygon':
+            for poly in geom.geoms:
+                coords = list(poly.exterior.coords)
+                lons = [c[0] for c in coords]
+                lats = [c[1] for c in coords]
+                ax.fill(lons, lats, transform=data_crs,
+                       color='white', alpha=alpha, edgecolor='none',
+                       linewidth=0, zorder=3)
+
+    # Add solid outline around entire 2011 flow field
+    flow_2011_union = lava_2011_gdf.union_all()
+    if flow_2011_union.geom_type == 'Polygon':
+        outline_2011_coords = list(flow_2011_union.exterior.coords)
+        outline_2011_lons = [c[0] for c in outline_2011_coords]
+        outline_2011_lats = [c[1] for c in outline_2011_coords]
+        ax.plot(outline_2011_lons, outline_2011_lats, transform=data_crs,
+               color='white', linewidth=2.5, linestyle='-',
+               zorder=4, label='2011 Lava Flow')
+    elif flow_2011_union.geom_type == 'MultiPolygon':
+        for poly in flow_2011_union.geoms:
+            outline_2011_coords = list(poly.exterior.coords)
+            outline_2011_lons = [c[0] for c in outline_2011_coords]
+            outline_2011_lats = [c[1] for c in outline_2011_coords]
+            ax.plot(outline_2011_lons, outline_2011_lats, transform=data_crs,
+                   color='white', linewidth=2.5, linestyle='-', zorder=4)
+
+    # 2015 lava flow - 12 individual features with color intensity by area
+    lava_gdf = gpd.read_file(LAVA_FLOW_2015_PATH)
+
+    # Normalize areas for color intensity (0.3 to 0.7 alpha range)
+    areas = lava_gdf['Area'].values
+    min_area, max_area = areas.min(), areas.max()
+    alphas = 0.3 + 0.4 * (areas - min_area) / (max_area - min_area)
+
+    # Plot each flow feature with intensity based on area
+    for idx, (geom, alpha) in enumerate(zip(lava_gdf.geometry, alphas)):
+        if geom.geom_type == 'Polygon':
+            coords = list(geom.exterior.coords)
+            lons = [c[0] for c in coords]
+            lats = [c[1] for c in coords]
+            ax.fill(lons, lats, transform=data_crs,
+                   color='#D55E00', alpha=alpha, edgecolor='none',
+                   linewidth=0, zorder=5)
+        elif geom.geom_type == 'MultiPolygon':
+            for poly in geom.geoms:
+                coords = list(poly.exterior.coords)
+                lons = [c[0] for c in coords]
+                lats = [c[1] for c in coords]
+                ax.fill(lons, lats, transform=data_crs,
+                       color='#D55E00', alpha=alpha, edgecolor='none',
+                       linewidth=0, zorder=5)
+
+    # Add solid outline around entire flow field
+    flow_union = lava_gdf.union_all()
+    if flow_union.geom_type == 'Polygon':
+        outline_coords = list(flow_union.exterior.coords)
+        outline_lons = [c[0] for c in outline_coords]
+        outline_lats = [c[1] for c in outline_coords]
+        ax.plot(outline_lons, outline_lats, transform=data_crs,
+               color='#D55E00', linewidth=2.5, linestyle='-',
+               zorder=6, label='2015 Lava Flow')
+    elif flow_union.geom_type == 'MultiPolygon':
+        for poly in flow_union.geoms:
+            outline_coords = list(poly.exterior.coords)
+            outline_lons = [c[0] for c in outline_coords]
+            outline_lats = [c[1] for c in outline_coords]
+            ax.plot(outline_lons, outline_lats, transform=data_crs,
+                   color='#D55E00', linewidth=2.5, linestyle='-', zorder=6)
 
     # Vent field markers
     label_offsets = {
