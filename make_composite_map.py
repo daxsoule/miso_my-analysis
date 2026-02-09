@@ -371,7 +371,7 @@ def render_ashes_detail(fig, ax):
         "Hell": (-55, -18),
         "Virgin": (12, 5),
         "Phoenix": (-75, -18),
-        "Mushroom": (12, 18),  # Moved higher to avoid overlapping Virgin
+        "Mushroom": (-18, 15),  # Moved left to avoid overlapping Virgin
     }
     for name, info in ASHES_VENTS.items():
         color = VENT_TYPE_COLORS[info['type']]
@@ -417,7 +417,7 @@ def render_ashes_detail(fig, ax):
     gl.xpadding = 8
     gl.ypadding = 8
 
-    # Legend (compact — serves as shared legend for both detail panels)
+    # Legend (temperature classification)
     legend_elements = [
         Line2D([0], [0], marker='o', linestyle='None',
                markerfacecolor=VENT_TYPE_COLORS['high-temp'],
@@ -570,6 +570,29 @@ def render_intl_district_detail(fig, ax, target_dims=None):
     gl.ylabel_style = {'size': FS_GRIDLINE}
     gl.xpadding = 8
     gl.ypadding = 8
+
+    # Legend (matches panel (b))
+    legend_elements = [
+        Line2D([0], [0], marker='o', linestyle='None',
+               markerfacecolor=VENT_TYPE_COLORS['high-temp'],
+               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
+               label='High-temp (>200\u00b0C)'),
+        Line2D([0], [0], marker='o', linestyle='None',
+               markerfacecolor=VENT_TYPE_COLORS['intermittent'],
+               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
+               label='Intermittent'),
+        Line2D([0], [0], marker='o', linestyle='None',
+               markerfacecolor=VENT_TYPE_COLORS['low-temp'],
+               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
+               label='Low-temp (<100\u00b0C)'),
+        Line2D([0], [0], marker='o', linestyle='None',
+               markerfacecolor=VENT_TYPE_COLORS['no-data'],
+               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
+               label='No data'),
+    ]
+    ax.legend(handles=legend_elements, loc='lower right', fontsize=FS_LEGEND,
+              framealpha=0.95, edgecolor='black',
+              borderpad=0.4, labelspacing=0.3, handletextpad=0.4)
 
     # Neatline
     draw_neatline(ax, n_segments=12, linewidth=5)

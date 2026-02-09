@@ -76,3 +76,6 @@ htmlcov/
 
 # mypy
 .mypy_cache/
+
+# Output figures (regenerate from scripts, don't track in git)
+outputs/figures/
