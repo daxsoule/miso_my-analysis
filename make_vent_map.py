@@ -252,8 +252,8 @@ def plot_site_map(lon, lat, z, output_path: Path):
     utm9n = ccrs.UTM(zone=9, southern_hemisphere=False)
     data_crs = ccrs.PlateCarree()
 
-    fig = plt.figure(figsize=(10, 12))
-    ax = fig.add_axes([0.08, 0.20, 0.84, 0.72], projection=utm9n)
+    fig = plt.figure(figsize=(12, 14))
+    ax = plt.subplot(111, projection=utm9n)
 
     # Plot shaded relief with contours
     z_min, z_max = plot_shaded_relief(ax, lon, lat, z, add_contours=True,
