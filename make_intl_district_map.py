@@ -15,13 +15,14 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from matplotlib.colors import LightSource
 from matplotlib.lines import Line2D
+from datetime import date
 from pathlib import Path
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 # Paths
 BATHY_PATH = Path("/home/jovyan/my_data/axial/axial_bathy/MBARI_AxialSeamount_V2506_LASSlidar_IntlDist_Topo1cmSq.grd")
-OUTPUT_DIR = Path(__file__).parent / "outputs" / "figures" / "poster"
+OUTPUT_DIR = Path(__file__).parent / "outputs" / "figures" / "poster" / "miso_maps"
 
 # International District vent locations (picked from 1cm bathymetry with UTM 9N projection)
 VENTS = {
@@ -149,8 +150,8 @@ def plot_intl_district_map(x, y, z, output_path: Path, subsample: int = 1):
     ax.imshow(rgb, extent=[x_utm_min, x_utm_max, y_utm_min, y_utm_max],
               origin='lower', transform=utm9n)
 
-    # Crop axes -- pull border in 10 meters on all sides
-    margin = 10  # meters (UTM)
+    # Crop axes -- pull border in 20 meters on all sides
+    margin = 20  # meters (UTM)
     vis_x_min = x_utm_min + margin
     vis_x_max = x_utm_max - margin
     vis_y_min = y_utm_min + margin
@@ -288,6 +289,12 @@ def plot_intl_district_map(x, y, z, output_path: Path, subsample: int = 1):
     # Neatline (alternating black/white ladder border)
     draw_neatline(ax, n_segments=16, linewidth=8)
 
+    # Date/projection stamp at bottom of map area
+    stamp_text = f"Map updated: {date.today().strftime('%Y-%m-%d')}, WGS84, UTM 9N"
+    ax.text(vis_x_max - vis_w * 0.02, vis_y_min + vis_h * 0.02, stamp_text,
+            ha='right', va='bottom', fontsize=9, transform=utm9n, zorder=15,
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
+
     # Figure caption -- left-aligned, poster font size, right edge aligned to map area
     import textwrap
 
@@ -299,8 +306,7 @@ def plot_intl_district_map(x, y, z, output_path: Path, subsample: int = 1):
         "International District vent field at Axial Seamount, mapped with 1 cm resolution "
         "LASS lidar bathymetry (MBARI, 2025). Shaded relief with 1-meter depth contours. "
         "Markers indicate vent locations colored by temperature classification from the "
-        "2024\u20132025 MISO deployment (see legend). Coordinates in WGS84; scale bar "
-        "in true meters (UTM 9N)."
+        "2024\u20132025 MISO deployment (see legend)."
     )
 
     # Calculate wrap width: caption_ax spans 0 to map_right in figure fraction,

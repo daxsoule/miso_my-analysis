@@ -371,7 +371,7 @@ def render_ashes_detail(fig, ax):
         "Hell": (-55, -18),
         "Virgin": (12, 5),
         "Phoenix": (-75, -18),
-        "Mushroom": (12, 10),
+        "Mushroom": (12, 18),  # Moved higher to avoid overlapping Virgin
     }
     for name, info in ASHES_VENTS.items():
         color = VENT_TYPE_COLORS[info['type']]
@@ -597,16 +597,16 @@ def make_composite_map():
     # --- Axes positions (figure-fraction) ---
     # Titles outside panels.  (b) flush with (a) top, (c) flush with (a) bottom.
     # (c) title sits in the gap between (b) and (c).
-    # Columns squeezed: (a) ends at 0.32, right panels start at 0.32.
+    # Panel (a) enlarged and shifted right to tighten layout.
     #
-    #   Panel (a): bottom=0.18, top=0.90  (height 0.72)  — title above
-    #   Panel (b): bottom=0.59, top=0.90  (height 0.31)  — top flush w/ (a), title above
-    #   Panel (c): bottom=0.18, top=0.49  (height 0.31)  — bottom flush w/ (a), title in gap
+    #   Panel (a): left=0.04, bottom=0.18, top=0.90  (height 0.72, width 0.40)  — title above
+    #   Panel (b): left=0.44, bottom=0.59, top=0.90  (height 0.31, width 0.38)  — top flush w/ (a), title above
+    #   Panel (c): left=0.44, bottom=0.18, top=0.49  (height 0.31, width 0.38)  — bottom flush w/ (a), title in gap
     #   Gap between (b) and (c): 0.59 - 0.49 = 0.10 (holds (c) title)
 
-    ax1 = fig.add_axes([0.02, 0.18, 0.30, 0.72], projection=utm9n)   # (a)
-    ax2 = fig.add_axes([0.32, 0.59, 0.42, 0.31], projection=utm9n)   # (b)
-    ax3 = fig.add_axes([0.32, 0.18, 0.42, 0.31], projection=utm9n)   # (c)
+    ax1 = fig.add_axes([0.04, 0.18, 0.40, 0.72], projection=utm9n)   # (a) - wider, shifted right
+    ax2 = fig.add_axes([0.44, 0.59, 0.38, 0.31], projection=utm9n)   # (b)
+    ax3 = fig.add_axes([0.44, 0.18, 0.38, 0.31], projection=utm9n)   # (c)
 
     # Render panels sequentially (one dataset at a time for memory)
     z_min, z_max = render_site_overview(fig, ax1)
@@ -633,8 +633,8 @@ def make_composite_map():
     cbar.ax.tick_params(labelsize=11)
 
     # --- Flowing caption (constrained to colorbar inner edge) ---
-    caption_width = cax_left - 0.02   # from left margin to colorbar
-    caption_ax = fig.add_axes([0.02, 0.005, caption_width, 0.11])
+    caption_width = cax_left - 0.04   # from left margin (0.04) to colorbar inner edge
+    caption_ax = fig.add_axes([0.04, 0.005, caption_width, 0.11])
     caption_ax.axis('off')
 
     caption_text = (
@@ -651,10 +651,10 @@ def make_composite_map():
         "enhanced color stretch; the colorbar shows the overview depth range."
     )
 
-    # Compute wrap width dynamically from actual caption area
-    # Figure is 20" wide; char width scales ~0.008" per pt for sans-serif
+    # Compute wrap width dynamically from actual caption area - tighter packing
+    # Figure is 20" wide; use 0.0065" per pt for tighter char width estimate
     caption_inches = caption_width * 20
-    char_width = FS_CAPTION * 0.008
+    char_width = FS_CAPTION * 0.0065  # Tighter estimate to fit more words per line
     chars_per_line = int(caption_inches / char_width)
     wrapped_caption = textwrap.fill(caption_text, width=chars_per_line)
     caption_ax.text(0.0, 1.0, wrapped_caption, fontsize=FS_CAPTION, va='top',

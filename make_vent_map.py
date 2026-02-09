@@ -18,6 +18,7 @@ from matplotlib.colors import LightSource
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, FancyArrowPatch, ConnectionPatch
 import matplotlib.patches as mpatches
+from datetime import date
 from pathlib import Path
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -25,7 +26,7 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 # Paths
 BATHY_PATH = Path("/home/jovyan/my_data/axial/axial_bathy/MBARI_AxialSeamount_V2506_AUV_Summit_AUVOverShip_Topo1mSq.grd")
-OUTPUT_DIR = Path("/home/jovyan/repos/specKitScience/miso_my-analysis/outputs/figures/poster")
+OUTPUT_DIR = Path("/home/jovyan/repos/specKitScience/miso_my-analysis/outputs/figures/poster/miso_maps")
 
 # Vent field coordinates (from user-provided table)
 # Format: degrees + minutes/60
@@ -354,6 +355,12 @@ def plot_site_map(lon, lat, z, output_path: Path):
                 arrowprops=dict(arrowstyle='->', color='black', lw=2),
                 transform=utm9n, zorder=15,
                 bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
+
+    # Date/projection stamp at bottom-right of map area
+    stamp_text = f"Map updated: {date.today().strftime('%Y-%m-%d')}, WGS84, UTM 9N"
+    ax.text(xlim[1] - vis_w * 0.02, ylim[0] + vis_h * 0.02, stamp_text,
+            ha='right', va='bottom', fontsize=9, transform=utm9n, zorder=15,
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
 
     # Neatline (alternating black/white ladder border)
     draw_neatline(ax, n_segments=16, linewidth=6)
