@@ -848,10 +848,62 @@ def load_bpr_historical():
 
 
 def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
-    """Figure: Vixen, Casper, and Escargot temperatures spanning the April 2015 eruption."""
-    fig = plt.figure(figsize=(10, 8), dpi=POSTER_DPI)
-    ax = fig.add_axes([0.1, 0.28, 0.80, 0.62])
+    """Figure: Vixen, Casper, and Escargot temperatures spanning the April 2015 eruption.
 
+    Three panels:
+      (a) All three vents overlaid (full time range)
+      (b) Vixen individual profile (Sep 2014 – Aug 10 2015)
+      (c) Casper individual profile (full record)
+    """
+    fig, axes = plt.subplots(3, 1, figsize=(10, 11), dpi=POSTER_DPI,
+                             height_ratios=[2, 1, 1])
+    fig.subplots_adjust(hspace=0.25, bottom=0.28, top=0.96, left=0.10, right=0.88)
+
+    # Find records by vent name
+    vixen_rec = None
+    casper_rec = None
+    for rec in records:
+        if rec.attrs["vent"] == "Vixen":
+            vixen_rec = rec
+        elif rec.attrs["vent"] == "Casper":
+            casper_rec = rec
+
+    # ─── Helper: add BPR + eruption line to a panel ───
+    def _add_bpr_and_eruption(ax, t_start, t_end, show_eruption=True,
+                               show_legend=True, legend_loc="upper right"):
+        ax_r = None
+        if bpr is not None:
+            ax_r = ax.twinx()
+            bpr_vis = bpr.loc[t_start:t_end].dropna()
+            if len(bpr_vis) > 0:
+                ax_r.plot(bpr_vis.index, bpr_vis.values,
+                          color="#0868AC", alpha=0.5, linewidth=POSTER_LINE_WIDTH + 0.5,
+                          linestyle="--", label="Uplift (m)")
+                ax_r.set_ylabel("Uplift (m)", color="#0868AC",
+                                fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+                ax_r.tick_params(axis="y", labelcolor="#0868AC", labelsize=POSTER_TICK_SIZE)
+                set_spine_width(ax_r)
+        if show_eruption and eruption_date and t_start <= eruption_date <= t_end:
+            ax.axvline(eruption_date, color="#CC0000", linestyle="--",
+                       linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.8)
+            ymin, ymax = ax.get_ylim()
+            y_pos = ymin + (ymax - ymin) * 0.25
+            ax.annotate("April 24, 2015\neruption", xy=(eruption_date, y_pos),
+                        xytext=(-5, 0), textcoords="offset points",
+                        fontsize=POSTER_ANNOT_SIZE, color="#CC0000",
+                        va="center", ha="right", fontweight="bold",
+                        arrowprops=dict(arrowstyle='->', color='#CC0000', lw=1.5))
+        if show_legend:
+            lines1, labels1 = ax.get_legend_handles_labels()
+            if ax_r is not None:
+                lines2, labels2 = ax_r.get_legend_handles_labels()
+                lines1 += lines2
+                labels1 += labels2
+            ax.legend(lines1, labels1, loc=legend_loc,
+                      fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
+
+    # ─── Panel (a): All three vents overlaid ───
+    ax_a = axes[0]
     all_starts = []
     all_ends = []
     for rec in records:
@@ -864,76 +916,103 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         deployed = rec[rec["deployed"]]
         if len(deployed) == 0:
             continue
-
         vent = rec.attrs["vent"]
         field = rec.attrs["field"]
         field_abbr = "ID" if field == "International District" else field
         color = VENT_COLORS.get(vent, "#333333")
         label = f"{vent} ({field_abbr})"
         daily = deployed["temperature"].resample("D").mean()
-        ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
+        ax_a.plot(daily.index, daily.values, color=color,
+                  linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
 
-    ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax.set_title("April 2015 Eruption Response", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
-    ax.set_ylim(225, 350)
-    ax.grid(True, alpha=0.3)
-    ax.tick_params(labelsize=POSTER_TICK_SIZE)
-    set_spine_width(ax)
+    ax_a.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+    ax_a.set_title("(a) April 2015 Eruption Response", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+    ax_a.set_ylim(225, 350)
+    ax_a.grid(True, alpha=0.3)
+    ax_a.tick_params(labelsize=POSTER_TICK_SIZE)
+    set_spine_width(ax_a)
 
-    # Set x-axis limits with balanced padding
     if all_starts:
-        xmin = min(all_starts) - pd.Timedelta(days=15)
-        xmax = max(all_ends) + pd.Timedelta(days=15)
-        ax.set_xlim(xmin, xmax)
+        xmin_a = min(all_starts) - pd.Timedelta(days=15)
+        xmax_a = max(all_ends) + pd.Timedelta(days=15)
+        ax_a.set_xlim(xmin_a, xmax_a)
 
-    # Clean date formatting — yearly ticks with minor monthly gridlines
-    ax.xaxis.set_major_locator(mdates.YearLocator())
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-    ax.xaxis.set_minor_locator(mdates.MonthLocator(interval=6))
-    plt.setp(ax.xaxis.get_majorticklabels(), rotation=0, ha="center")
+    ax_a.xaxis.set_major_locator(mdates.YearLocator())
+    ax_a.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+    ax_a.xaxis.set_minor_locator(mdates.MonthLocator(interval=6))
+    plt.setp(ax_a.xaxis.get_majorticklabels(), rotation=0, ha="center")
 
-    # BPR on right axis
-    if bpr is not None:
-        ax2 = ax.twinx()
-        bpr_visible = bpr.loc[xmin:xmax].dropna()
-        if len(bpr_visible) > 0:
-            ax2.plot(bpr_visible.index, bpr_visible.values,
-                     color="#0868AC", alpha=0.5, linewidth=POSTER_LINE_WIDTH + 0.5,
-                     linestyle="--", label="Uplift (m)")
-            ax2.set_ylabel("Uplift (m)", color="#0868AC", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-            ax2.tick_params(axis="y", labelcolor="#0868AC", labelsize=POSTER_TICK_SIZE)
-            set_spine_width(ax2)
+    ax_a.yaxis.set_major_formatter(plt.FormatStrFormatter('%.1f'))
+    _add_bpr_and_eruption(ax_a, xmin_a, xmax_a, legend_loc="upper right")
 
-    # Combined legend — upper right
-    lines1, labels1 = ax.get_legend_handles_labels()
-    if bpr is not None:
-        lines2, labels2 = ax2.get_legend_handles_labels()
-        all_lines = lines1 + lines2
-        all_labels = labels1 + labels2
-    else:
-        all_lines, all_labels = lines1, labels1
-    ax.legend(all_lines, all_labels, loc="upper right", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
+    # ─── Panel (b): Vixen (Sep 2014 – Aug 10 2015) ───
+    ax_b = axes[1]
+    if vixen_rec is not None:
+        t_start_v = vixen_rec[vixen_rec["deployed"]].index.min() - pd.Timedelta(days=7)
+        t_end_v = pd.Timestamp("2015-08-10")
+        deployed = vixen_rec[vixen_rec["deployed"]]
+        daily = deployed["temperature"].resample("D").mean().loc[:t_end_v]
 
-    # April 2015 eruption annotation — lower quarter, left side
-    if eruption_date:
-        ax.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.8)
-        ymin, ymax = ax.get_ylim()
-        y_pos = ymin + (ymax - ymin) * 0.25
-        ax.annotate("April 24, 2015\neruption", xy=(eruption_date, y_pos),
-                    xytext=(-5, 0), textcoords="offset points",
-                    fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="center", ha="right", fontweight="bold",
-                    arrowprops=dict(arrowstyle='->', color='#CC0000', lw=1.5))
+        color = VENT_COLORS.get("Vixen", "#D55E00")
+        ax_b.plot(daily.index, daily.values, color=color,
+                  linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Vixen (Coquille)")
+        ax_b.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        ax_b.grid(True, alpha=0.3)
+        ax_b.tick_params(labelsize=POSTER_TICK_SIZE)
+        set_spine_width(ax_b)
+        ax_b.set_xlim(t_start_v, t_end_v)
+        ax_b.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
+        ax_b.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+        plt.setp(ax_b.xaxis.get_majorticklabels(), rotation=0, ha="center")
 
-    # Figure caption - left-aligned, justified
+        # Title inside plot, bottom left
+        ax_b.text(0.02, 0.08, "(b) Vixen \u2014 Coquille",
+                  transform=ax_b.transAxes, fontsize=POSTER_LABEL_SIZE, fontweight="bold",
+                  bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9))
+
+        _add_bpr_and_eruption(ax_b, t_start_v, t_end_v, show_legend=False)
+
+    # ─── Panel (c): Casper (full record) ───
+    ax_c = axes[2]
+    if casper_rec is not None:
+        deployed = casper_rec[casper_rec["deployed"]]
+        daily = deployed["temperature"].resample("D").mean()
+        t_start_c = daily.index.min() - pd.Timedelta(days=7)
+        t_end_c = daily.index.max() + pd.Timedelta(days=7)
+
+        color = VENT_COLORS.get("Casper", "#009E73")
+        ax_c.plot(daily.index, daily.values, color=color,
+                  linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Casper (Coquille)")
+        ax_c.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        ax_c.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        ax_c.grid(True, alpha=0.3)
+        ax_c.tick_params(labelsize=POSTER_TICK_SIZE)
+        set_spine_width(ax_c)
+        ax_c.set_xlim(t_start_c, t_end_c)
+        ax_c.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
+        ax_c.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+        plt.setp(ax_c.xaxis.get_majorticklabels(), rotation=0, ha="center")
+
+        ax_c.yaxis.set_major_formatter(plt.FormatStrFormatter('%.1f'))
+
+        # Title inside plot, bottom left
+        ax_c.text(0.02, 0.08, "(c) Casper \u2014 Coquille",
+                  transform=ax_c.transAxes, fontsize=POSTER_LABEL_SIZE, fontweight="bold",
+                  bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9))
+
+        _add_bpr_and_eruption(ax_c, t_start_c, t_end_c, show_legend=False)
+
+    # Figure caption
     caption = (
-        "Vent temperatures spanning the April 24, 2015 Axial Seamount eruption. "
-        "Y-axis: temperature (°C); right axis: seafloor uplift (m). "
-        "Vixen (vermillion, Coquille), Casper (teal, Coquille), "
-        "Escargot (purple, International District, OOI TRHPHA301), "
-        "and BPR uplift (dashed blue line). "
-        "Escargot shown only during stable pre-crash period (Sept–Nov 2014). "
-        "Pre-eruption data captured by MISO loggers (Vixen, Casper) and OOI cabled sensor (Escargot)."
+        "(a) Vent temperatures spanning the April 24, 2015 Axial Seamount eruption. "
+        "Vixen (vermillion) and Casper (teal) are MISO loggers at the Coquille vent field; "
+        "Escargot (purple) is an OOI cabled sensor (TRHPHA301) at the International District, "
+        "shown only during its stable pre-crash period (Sept\u2013Nov 2014). "
+        "Dashed blue line shows BPR seafloor uplift (m). "
+        "(b) Vixen detail from deployment through Aug 2015, showing the co-eruptive "
+        "temperature perturbation and initial post-eruption decline. "
+        "(c) Casper full record, showing a ~6\u00b0C post-eruption temperature drop "
+        "and increased variability."
     )
     add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
@@ -1101,6 +1180,123 @@ def fig_single_vent_2015(rec, fig_path, eruption_date=None, bpr=None, t_end_over
                     xytext=(-5, 0), textcoords="offset points",
                     fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="center", ha="right", fontweight="bold",
                     arrowprops=dict(arrowstyle='->', color='#CC0000', lw=1.5))
+
+    fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
+    plt.close(fig)
+    print(f"Saved: {fig_path}")
+
+
+def fig_escargot_multi(records, fig_path, eruption_date=None, bpr=None):
+    """Figure: Escargot (top) + Vixen around eruption (bottom), both with BPR overlay."""
+    # Find records
+    escargot_rec = None
+    vixen_rec = None
+    for rec in records:
+        if rec.attrs["vent"] == "Escargot":
+            escargot_rec = rec
+        elif rec.attrs["vent"] == "Vixen":
+            vixen_rec = rec
+
+    fig, (ax_top, ax_bot) = plt.subplots(2, 1, figsize=(10, 12), dpi=POSTER_DPI)
+    fig.subplots_adjust(hspace=0.35, bottom=0.12, top=0.94)
+
+    # --- Panel (a): Escargot (full record) ---
+    if escargot_rec is not None:
+        deployed = escargot_rec[escargot_rec["deployed"]]
+        daily = deployed["temperature"].resample("D").mean()
+        t_start_e = daily.index.min() - pd.Timedelta(days=7)
+        t_end_e = daily.index.max() + pd.Timedelta(days=7)
+
+        color = VENT_COLORS.get("Escargot", "#CC79A7")
+        ax_top.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH,
+                    alpha=0.85, label="Escargot (Int'l District)")
+        ax_top.set_ylabel("Temperature (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        ax_top.set_title("(a) Escargot — International District", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+        ax_top.grid(True, alpha=0.3)
+        ax_top.tick_params(labelsize=POSTER_TICK_SIZE)
+        set_spine_width(ax_top)
+        ax_top.set_xlim(t_start_e, t_end_e)
+
+        ax_top.xaxis.set_major_locator(mdates.MonthLocator())
+        ax_top.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+        plt.setp(ax_top.xaxis.get_majorticklabels(), rotation=0, ha="center")
+        ax_top.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+
+        # BPR overlay
+        ax_top_r = None
+        if bpr is not None:
+            ax_top_r = ax_top.twinx()
+            bpr_vis = bpr.loc[t_start_e:t_end_e].dropna()
+            if len(bpr_vis) > 0:
+                ax_top_r.plot(bpr_vis.index, bpr_vis.values,
+                              color="#0868AC", alpha=0.5, linewidth=POSTER_LINE_WIDTH + 0.5,
+                              linestyle="--", label="Uplift (m)")
+                ax_top_r.set_ylabel("Uplift (m)", color="#0868AC", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+                ax_top_r.tick_params(axis="y", labelcolor="#0868AC", labelsize=POSTER_TICK_SIZE)
+                set_spine_width(ax_top_r)
+
+        # Legend
+        lines1, labels1 = ax_top.get_legend_handles_labels()
+        if ax_top_r is not None:
+            lines2, labels2 = ax_top_r.get_legend_handles_labels()
+            lines1 += lines2
+            labels1 += labels2
+        ax_top.legend(lines1, labels1, loc="upper right", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
+
+    # --- Panel (b): Vixen (2 months pre-eruption to Aug 10 2015) ---
+    if vixen_rec is not None:
+        t_start_v = pd.Timestamp("2015-02-24")
+        t_end_v = pd.Timestamp("2015-08-10")
+
+        deployed = vixen_rec[vixen_rec["deployed"]]
+        daily = deployed["temperature"].resample("D").mean()
+        daily = daily.loc[t_start_v:t_end_v]
+
+        color = VENT_COLORS.get("Vixen", "#D55E00")
+        ax_bot.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH,
+                    alpha=0.85, label="Vixen (Coquille)")
+        ax_bot.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        ax_bot.set_ylabel("Temperature (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        ax_bot.set_title("(b) Vixen — Coquille", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+        ax_bot.grid(True, alpha=0.3)
+        ax_bot.tick_params(labelsize=POSTER_TICK_SIZE)
+        set_spine_width(ax_bot)
+        ax_bot.set_xlim(t_start_v, t_end_v)
+
+        ax_bot.xaxis.set_major_locator(mdates.MonthLocator())
+        ax_bot.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+        plt.setp(ax_bot.xaxis.get_majorticklabels(), rotation=0, ha="center")
+
+        # BPR overlay
+        ax_bot_r = None
+        if bpr is not None:
+            ax_bot_r = ax_bot.twinx()
+            bpr_vis = bpr.loc[t_start_v:t_end_v].dropna()
+            if len(bpr_vis) > 0:
+                ax_bot_r.plot(bpr_vis.index, bpr_vis.values,
+                              color="#0868AC", alpha=0.5, linewidth=POSTER_LINE_WIDTH + 0.5,
+                              linestyle="--", label="Uplift (m)")
+                ax_bot_r.set_ylabel("Uplift (m)", color="#0868AC", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+                ax_bot_r.tick_params(axis="y", labelcolor="#0868AC", labelsize=POSTER_TICK_SIZE)
+                set_spine_width(ax_bot_r)
+
+        # Eruption annotation
+        if eruption_date and t_start_v <= eruption_date <= t_end_v:
+            ax_bot.axvline(eruption_date, color="#CC0000", linestyle="--", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.8)
+            ymin, ymax = ax_bot.get_ylim()
+            y_pos = ymin + (ymax - ymin) * 0.25
+            ax_bot.annotate("April 24, 2015\neruption", xy=(eruption_date, y_pos),
+                            xytext=(-5, 0), textcoords="offset points",
+                            fontsize=POSTER_ANNOT_SIZE, color="#CC0000", va="center", ha="right", fontweight="bold",
+                            arrowprops=dict(arrowstyle='->', color='#CC0000', lw=1.5))
+
+        # Legend
+        lines1, labels1 = ax_bot.get_legend_handles_labels()
+        if ax_bot_r is not None:
+            lines2, labels2 = ax_bot_r.get_legend_handles_labels()
+            lines1 += lines2
+            labels1 += labels2
+        ax_bot.legend(lines1, labels1, loc="upper right", fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
@@ -1698,6 +1894,8 @@ def main():
             elif vent == "Escargot":
                 fig_single_vent_2015(rec, FIG_DIR / "eruption_2015_escargot.png",
                                      eruption_date=eruption_2015, bpr=bpr_hist)
+        fig_escargot_multi(records_2015_eruption, FIG_DIR / "eruption_2015_escargot_multi.png",
+                           eruption_date=eruption_2015, bpr=bpr_hist)
 
     print("\nDone!")
 
