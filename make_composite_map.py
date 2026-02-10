@@ -68,20 +68,24 @@ VENT_FIELDS = {
 
 # === ASHES vents (1cm-picked coordinates) ===
 ASHES_VENTS = {
-    "Inferno": {"lon": -130.013865, "lat": 45.933519, "type": "high-temp"},
-    "Hell": {"lon": -130.014140, "lat": 45.933272, "type": "low-temp"},
-    "Virgin": {"lon": -130.013447, "lat": 45.933615, "type": "intermittent"},
-    "Phoenix": {"lon": -130.013852, "lat": 45.933217, "type": "no-data"},
-    "Mushroom": {"lon": -130.013757, "lat": 45.933563, "type": "no-data"},
+    "Inferno": {"lon": -130.013865, "lat": 45.933519},
+    "Hell": {"lon": -130.014140, "lat": 45.933272},
+    "Virgin": {"lon": -130.013447, "lat": 45.933615},
+    "Phoenix": {"lon": -130.013852, "lat": 45.933217},
+    "Mushroom": {"lon": -130.013757, "lat": 45.933563},
 }
 
 # === Int'l District vents (1cm-picked coordinates) ===
 INTL_VENTS = {
-    "El Guapo": {"lon": -129.979585, "lat": 45.926543, "type": "high-temp"},
-    "Escargot": {"lon": -129.979223, "lat": 45.926365, "type": "high-temp"},
-    "Castle": {"lon": -129.980102, "lat": 45.926212, "type": "high-temp"},
-    "Diva": {"lon": -129.979105, "lat": 45.926377, "type": "high-temp"},
-    "Flat Top": {"lon": -129.979836, "lat": 45.926141, "type": "high-temp"},
+    "El Guapo": {"lon": -129.979585, "lat": 45.926543},
+    "Escargot": {"lon": -129.979223, "lat": 45.926365},
+    "Diva": {"lon": -129.979105, "lat": 45.926377},
+}
+
+# === BPR stations (OOI Bottom Pressure Recorders) ===
+BPR_STATIONS = {
+    "MJ03F": {"lon": -130.008772, "lat": 45.95485, "label": "MJ03F\n(Central Caldera)"},
+    "MJ03E": {"lon": -129.974113, "lat": 45.939888, "label": "MJ03E\n(Eastern Caldera)"},
 }
 
 # === Temperature classification colors ===
@@ -343,6 +347,26 @@ def render_site_overview(fig, ax):
                                    shrinkB=5),
                     zorder=11)
 
+    # BPR station markers (red triangles)
+    bpr_label_offsets = {
+        "MJ03F": (20, -20),
+        "MJ03E": (-120, 15),
+    }
+    for stn_name, stn_info in BPR_STATIONS.items():
+        ax.plot(stn_info['lon'], stn_info['lat'], '^', markersize=10,
+                markerfacecolor='red', markeredgecolor='black',
+                markeredgewidth=1.5, zorder=10, transform=data_crs)
+        offset = bpr_label_offsets.get(stn_name, (20, -15))
+        ax.annotate(stn_info['label'], (stn_info['lon'], stn_info['lat']),
+                    xycoords=data_crs._as_mpl_transform(ax),
+                    xytext=offset, textcoords='offset points',
+                    fontsize=FS_VENT_LABEL, fontweight='bold',
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                             alpha=0.9, edgecolor='red', linewidth=1.5),
+                    arrowprops=dict(arrowstyle='->', color='red', lw=1.2,
+                                   shrinkB=5),
+                    zorder=11)
+
     # Scale bar (2 km neatline-style)
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
@@ -399,6 +423,21 @@ def render_site_overview(fig, ax):
 
     # Date stamp
     add_date_stamp(ax, utm9n, xlim[1], ylim[0], vis_w, vis_h)
+
+    # Legend
+    legend_elements = [
+        Line2D([0], [0], marker='o', linestyle='None',
+               markerfacecolor='white', markeredgecolor='black',
+               markersize=8, markeredgewidth=1.5, label='Vent Field'),
+        Line2D([0], [0], marker='^', linestyle='None',
+               markerfacecolor='red', markeredgecolor='black',
+               markersize=8, markeredgewidth=1.5, label='BPR Station'),
+        Line2D([0], [0], color='white', linewidth=2.5, label='2011 Lava Flow'),
+        Line2D([0], [0], color='#D55E00', linewidth=2.5, label='2015 Lava Flow'),
+    ]
+    ax.legend(handles=legend_elements, loc='upper right', fontsize=FS_LEGEND,
+              framealpha=0.95, edgecolor='black',
+              borderpad=0.4, labelspacing=0.3, handletextpad=0.4)
 
     # Neatline
     draw_neatline(ax, n_segments=14, linewidth=5)
@@ -461,7 +500,7 @@ def render_ashes_detail(fig, ax):
     ax.contour(x_utm_grid, y_utm_grid, z, levels=contour_levels,
                colors='black', linewidths=0.3, alpha=0.4, transform=utm9n)
 
-    # Vent markers
+    # Vent markers (yellow diamonds)
     label_offsets = {
         "Inferno": (0, -22),
         "Hell": (-55, -18),
@@ -470,20 +509,19 @@ def render_ashes_detail(fig, ax):
         "Mushroom": (-18, 15),  # Moved left to avoid overlapping Virgin
     }
     for name, info in ASHES_VENTS.items():
-        color = VENT_TYPE_COLORS[info['type']]
         if x.min() <= info['lon'] <= x.max() and y.min() <= info['lat'] <= y.max():
-            ax.plot(info['lon'], info['lat'], 'o', markersize=2.5,
-                    markerfacecolor=color, markeredgecolor='black',
-                    markeredgewidth=1.5, zorder=10, transform=data_crs)
+            ax.plot(info['lon'], info['lat'], 'D', markersize=5,
+                    markerfacecolor='#FFDD00', markeredgecolor='black',
+                    markeredgewidth=1.0, zorder=10, transform=data_crs)
             offset = label_offsets.get(name, (12, 5))
             ax.annotate(name, (info['lon'], info['lat']),
                         xycoords=data_crs._as_mpl_transform(ax),
                         xytext=offset, textcoords='offset points',
-                        fontsize=FS_VENT_LABEL, fontweight='bold', color=color,
-                        arrowprops=dict(arrowstyle='->', color=color,
+                        fontsize=FS_VENT_LABEL, fontweight='bold',
+                        arrowprops=dict(arrowstyle='->', color='black',
                                         lw=1.2, shrinkB=5),
                         bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
-                                 alpha=0.9, edgecolor=color, linewidth=1.5),
+                                 alpha=0.9, edgecolor='black', linewidth=1.5),
                         zorder=12)
 
     # Scale bar (10m plain black)
@@ -512,29 +550,6 @@ def render_ashes_detail(fig, ax):
     gl.ylabel_style = {'size': FS_GRIDLINE}
     gl.xpadding = 8
     gl.ypadding = 8
-
-    # Legend (temperature classification)
-    legend_elements = [
-        Line2D([0], [0], marker='o', linestyle='None',
-               markerfacecolor=VENT_TYPE_COLORS['high-temp'],
-               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
-               label='High-temp (>200\u00b0C)'),
-        Line2D([0], [0], marker='o', linestyle='None',
-               markerfacecolor=VENT_TYPE_COLORS['intermittent'],
-               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
-               label='Intermittent'),
-        Line2D([0], [0], marker='o', linestyle='None',
-               markerfacecolor=VENT_TYPE_COLORS['low-temp'],
-               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
-               label='Low-temp (<100\u00b0C)'),
-        Line2D([0], [0], marker='o', linestyle='None',
-               markerfacecolor=VENT_TYPE_COLORS['no-data'],
-               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
-               label='No data'),
-    ]
-    ax.legend(handles=legend_elements, loc='lower right', fontsize=FS_LEGEND,
-              framealpha=0.95, edgecolor='black',
-              borderpad=0.4, labelspacing=0.3, handletextpad=0.4)
 
     # Neatline
     draw_neatline(ax, n_segments=12, linewidth=5)
@@ -615,29 +630,26 @@ def render_intl_district_detail(fig, ax, target_dims=None):
     ax.contour(x_utm_grid, y_utm_grid, z, levels=contour_levels,
                colors='black', linewidths=0.3, alpha=0.4, transform=utm9n)
 
-    # Vent markers
+    # Vent markers (yellow diamonds)
     label_offsets = {
         "El Guapo": (15, 12),
         "Escargot": (-85, -18),
-        "Castle": (15, 15),
         "Diva": (15, -18),
-        "Flat Top": (-80, -18),
     }
     for name, info in INTL_VENTS.items():
-        color = VENT_TYPE_COLORS[info['type']]
         if x.min() <= info['lon'] <= x.max() and y.min() <= info['lat'] <= y.max():
-            ax.plot(info['lon'], info['lat'], 'o', markersize=2.5,
-                    markerfacecolor=color, markeredgecolor='black',
-                    markeredgewidth=1.5, zorder=10, transform=data_crs)
+            ax.plot(info['lon'], info['lat'], 'D', markersize=5,
+                    markerfacecolor='#FFDD00', markeredgecolor='black',
+                    markeredgewidth=1.0, zorder=10, transform=data_crs)
             offset = label_offsets.get(name, (12, 5))
             ax.annotate(name, (info['lon'], info['lat']),
                         xycoords=data_crs._as_mpl_transform(ax),
                         xytext=offset, textcoords='offset points',
-                        fontsize=FS_VENT_LABEL, fontweight='bold', color=color,
-                        arrowprops=dict(arrowstyle='->', color=color,
+                        fontsize=FS_VENT_LABEL, fontweight='bold',
+                        arrowprops=dict(arrowstyle='->', color='black',
                                         lw=1.2, shrinkB=5),
                         bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
-                                 alpha=0.9, edgecolor=color, linewidth=1.5),
+                                 alpha=0.9, edgecolor='black', linewidth=1.5),
                         zorder=12)
 
     # Scale bar (10m plain black)
@@ -666,29 +678,6 @@ def render_intl_district_detail(fig, ax, target_dims=None):
     gl.ylabel_style = {'size': FS_GRIDLINE}
     gl.xpadding = 8
     gl.ypadding = 8
-
-    # Legend (matches panel (b))
-    legend_elements = [
-        Line2D([0], [0], marker='o', linestyle='None',
-               markerfacecolor=VENT_TYPE_COLORS['high-temp'],
-               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
-               label='High-temp (>200\u00b0C)'),
-        Line2D([0], [0], marker='o', linestyle='None',
-               markerfacecolor=VENT_TYPE_COLORS['intermittent'],
-               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
-               label='Intermittent'),
-        Line2D([0], [0], marker='o', linestyle='None',
-               markerfacecolor=VENT_TYPE_COLORS['low-temp'],
-               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
-               label='Low-temp (<100\u00b0C)'),
-        Line2D([0], [0], marker='o', linestyle='None',
-               markerfacecolor=VENT_TYPE_COLORS['no-data'],
-               markersize=6, markeredgecolor='black', markeredgewidth=0.8,
-               label='No data'),
-    ]
-    ax.legend(handles=legend_elements, loc='lower right', fontsize=FS_LEGEND,
-              framealpha=0.95, edgecolor='black',
-              borderpad=0.4, labelspacing=0.3, handletextpad=0.4)
 
     # Neatline
     draw_neatline(ax, n_segments=12, linewidth=5)
@@ -759,7 +748,8 @@ def make_composite_map():
     caption_text = (
         "This figure shows the hydrothermal vent fields of Axial Seamount "
         "at multiple spatial scales. Panel (a) provides an overview of the "
-        "caldera with five vent field locations plotted on 1 m AUV bathymetry "
+        "caldera with five vent field locations and two OOI bottom pressure "
+        "recorder (BPR) stations (MJ03E, MJ03F) plotted on 1 m AUV bathymetry "
         "(MBARI, 2025) with 20 m depth contours. Recent lava flows from the "
         "2011 (white) and 2015 (orange) eruptions are shown with color "
         "intensity indicating flow size; each eruption produced ~12 distinct "
@@ -768,10 +758,9 @@ def make_composite_map():
         "1 cm LASS lidar bathymetry (MBARI, 2025) with 1 m depth contours. "
         "Panel (c) shows the International District vent field at the same "
         "scale, also mapped with 1 cm LASS lidar bathymetry (MBARI, 2025) "
-        "with 1 m depth contours. Vent markers are colored by temperature "
-        "classification from the 2024\u20132025 MISO deployment. Detail panels "
-        "use locally enhanced color stretch; the colorbar shows the overview "
-        "depth range."
+        "with 1 m depth contours. Individual vents from the 2024\u20132025 MISO "
+        "deployment are marked with yellow diamonds. Detail panels use locally "
+        "enhanced color stretch; the colorbar shows the overview depth range."
     )
 
     # Compute wrap width dynamically from actual caption area - tighter packing
