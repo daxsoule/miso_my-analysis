@@ -647,18 +647,54 @@ def add_caption_justified(fig, caption_text, caption_width=0.85, fontsize=POSTER
     fontsize : int
         Caption font size
     """
-    # Calculate wrap width based on figure width and font size
+    # Calculate approximate wrap width for line breaking
     caption_width_in = caption_width * fig.get_size_inches()[0]
     char_width_in = fontsize / 72 * 0.50  # approximate char width for sans-serif
     wrap_chars = int(caption_width_in / char_width_in)
-    caption_wrapped = textwrap.fill(caption_text, width=wrap_chars)
+    lines = textwrap.wrap(caption_text, width=wrap_chars)
 
     # Create caption axes at bottom
     caption_ax = fig.add_axes([0.05, 0.02, caption_width, 0.15])
     caption_ax.axis('off')
-    caption_ax.text(0.0, 1.0, caption_wrapped, ha="left", va="top",
-                    fontsize=fontsize, transform=caption_ax.transAxes,
-                    family='sans-serif')
+
+    # Use renderer to measure actual text widths for true justification
+    renderer = fig.canvas.get_renderer()
+    ax_bbox = caption_ax.get_window_extent(renderer)
+
+    # Measure line height
+    sample = caption_ax.text(0, 0, "Tg", fontsize=fontsize, family='sans-serif',
+                             transform=caption_ax.transAxes)
+    sample_bbox = sample.get_window_extent(renderer)
+    line_height = (sample_bbox.height * 1.35) / ax_bbox.height
+    sample.remove()
+
+    for i, line in enumerate(lines):
+        y = 1.0 - i * line_height
+        words = line.split()
+
+        if i < len(lines) - 1 and len(words) > 1:
+            # Measure each word's rendered width in axes coordinates
+            word_widths = []
+            for word in words:
+                t = caption_ax.text(0, 0, word, fontsize=fontsize, family='sans-serif',
+                                    transform=caption_ax.transAxes)
+                wb = t.get_window_extent(renderer)
+                word_widths.append(wb.width / ax_bbox.width)
+                t.remove()
+
+            total_word_width = sum(word_widths)
+            remaining = 1.0 - total_word_width
+            gap = remaining / (len(words) - 1)
+
+            x = 0.0
+            for j, word in enumerate(words):
+                caption_ax.text(x, y, word, fontsize=fontsize, family='sans-serif',
+                                transform=caption_ax.transAxes, va='top', ha='left')
+                x += word_widths[j] + gap
+        else:
+            # Last line: left-aligned
+            caption_ax.text(0.0, y, line, fontsize=fontsize, family='sans-serif',
+                            transform=caption_ax.transAxes, va='top', ha='left')
 
 
 def fig_historical_eruption(records, fig_path, eruption_date=None, bpr=None):
@@ -684,7 +720,7 @@ def fig_historical_eruption(records, fig_path, eruption_date=None, bpr=None):
 
     ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax.set_title("April 2011 Eruption Response", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+    ax.set_title("April 2011 Eruption Response", fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
     set_spine_width(ax)
@@ -736,13 +772,13 @@ def fig_historical_eruption(records, fig_path, eruption_date=None, bpr=None):
     # Figure caption - left-aligned, justified
     caption = (
         "Vent temperatures spanning the April 6, 2011 Axial Seamount eruption. "
-        "Y-axis: temperature (°C); right axis: seafloor uplift (m). "
-        "Casper (teal, Coquille field) and Diva (vermillion, International District). "
-        "Both vents responded with immediate temperature drops post-eruption and gradual recovery on similar timescales. "
-        "Diva's response (~70°C drop) was stronger than Casper's (~10°C drop). "
-        "BPR uplift (blue line) shows pre-eruption inflation and co-eruptive deflation."
+        "Diva (vermillion, International District) showed a stronger response (~70°C drop) "
+        "than Casper (bluish green, Coquille, ~10°C). "
+        "Blue dashed line: differential seafloor uplift (m) from bottom pressure recorders, "
+        "measuring volcanic inflation and deflation. Absolute values are arbitrary; "
+        "the signal shows relative vertical displacement of the caldera floor."
     )
-    add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
+    add_caption_justified(fig, caption, caption_width=0.85, fontsize=22)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
@@ -857,7 +893,7 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
       (c) Escargot (full record, crash period masked)
     """
     fig, axes = plt.subplots(3, 1, figsize=(10, 10), dpi=POSTER_DPI)
-    fig.subplots_adjust(hspace=0.45, bottom=0.26, top=0.96, left=0.10, right=0.88)
+    fig.subplots_adjust(hspace=0.75, bottom=0.26, top=0.96, left=0.10, right=0.88)
 
     # Find records by vent name
     vixen_rec = None
@@ -925,7 +961,7 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         ax_a.plot(daily.index, daily.values, color=color,
                   linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Vixen (Coquille)")
         ax_a.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        ax_a.set_title("(a) Vixen \u2014 Coquille", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+        ax_a.set_title("(a) Vixen \u2014 Coquille", fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
         ax_a.grid(True, alpha=0.3)
         ax_a.tick_params(labelsize=POSTER_TICK_SIZE)
         set_spine_width(ax_a)
@@ -950,7 +986,7 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         ax_b.plot(daily.index, daily.values, color=color,
                   linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Casper (Coquille)")
         ax_b.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        ax_b.set_title("(b) Casper \u2014 Coquille", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+        ax_b.set_title("(b) Casper \u2014 Coquille", fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
         ax_b.grid(True, alpha=0.3)
         ax_b.tick_params(labelsize=POSTER_TICK_SIZE)
         set_spine_width(ax_b)
@@ -979,7 +1015,7 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
                   linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Escargot (Int'l District)")
         ax_c.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax_c.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        ax_c.set_title("(c) Escargot \u2014 Int'l District", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+        ax_c.set_title("(c) Escargot \u2014 Int'l District", fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
         ax_c.grid(True, alpha=0.3)
         ax_c.tick_params(labelsize=POSTER_TICK_SIZE)
         set_spine_width(ax_c)
@@ -995,17 +1031,15 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
 
     # Figure caption
     caption = (
-        "Individual vent temperature profiles spanning the April 24, 2015 Axial Seamount eruption. "
-        "Dashed blue line shows BPR seafloor uplift (m). "
-        "$\\mathbf{(a)}$ Vixen (MISO, Coquille field) from deployment through Aug 2015, showing the "
-        "co-eruptive temperature perturbation and initial post-eruption decline. "
-        "$\\mathbf{(b)}$ Casper (MISO, Coquille field) full record, showing a ~6\u00b0C post-eruption "
-        "temperature drop and increased variability. "
-        "$\\mathbf{(c)}$ Escargot (OOI TRHPHA301, Int'l District) full record (2014\u20132019), showing "
-        "~315\u00b0C pre-eruptive stability, post-eruptive decline to ~255\u00b0C, and gradual multi-year recovery. "
-        "Gap in Escargot record (Nov 2014\u2013Jul 2015) reflects instrument crash during eruption period."
+        "Individual vent temperatures spanning the April 24, 2015 Axial Seamount eruption. "
+        "$\\mathbf{(a)}$ Vixen (Coquille) shows co-eruptive perturbation and decline. "
+        "$\\mathbf{(b)}$ Casper (Coquille) shows ~6\u00b0C post-eruption drop. "
+        "$\\mathbf{(c)}$ Escargot (Int'l District, 2014\u20132019) shows decline to ~255\u00b0C "
+        "with multi-year recovery. Blue dashed line: differential seafloor uplift (m) from "
+        "bottom pressure recorders, measuring volcanic inflation and deflation. Absolute values "
+        "are arbitrary; the signal shows relative vertical displacement of the caldera floor."
     )
-    add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
+    add_caption_justified(fig, caption, caption_width=0.85, fontsize=22)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
@@ -1565,9 +1599,9 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
 
     # Two panels if TMPSF available, otherwise single (with space for caption)
     if tmpsf is not None:
-        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 15), dpi=POSTER_DPI,
-                                        height_ratios=[3, 1], sharex=True)
-        fig.subplots_adjust(bottom=0.18, top=0.94, right=0.88, hspace=0.12)
+        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 12), dpi=POSTER_DPI,
+                                        height_ratios=[2, 1], sharex=True)
+        fig.subplots_adjust(bottom=0.22, top=0.94, right=0.88, hspace=0.20)
     else:
         fig, ax1 = plt.subplots(figsize=(10, 10), dpi=POSTER_DPI)
         fig.subplots_adjust(bottom=0.25, right=0.82)
@@ -1644,8 +1678,8 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         ax3.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
         ax3.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
         ax3.grid(True, alpha=0.3)
-        ax3.set_title("Diffuse Flow — ASHES (TMPSF 2nd highest channel, excl. ch06)",
-                      fontsize=POSTER_LABEL_SIZE, loc="left", style="italic")
+        ax3.set_title("(b) Diffuse Flow \u2014 ASHES",
+                      fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
         set_spine_width(ax3)
 
         # Constrain TMPSF y-axis to visible range
@@ -1683,7 +1717,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
                fontsize=POSTER_LEGEND_SIZE - 2, frameon=True, framealpha=0.9)
 
     ax1.set_title("Vent Temperatures & Deformation",
-                  fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+                  fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
     ax1.grid(True, alpha=0.3)
     set_spine_width(ax1)
 
@@ -1692,30 +1726,17 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     if tmpsf is not None:
         ax3.text(-0.08, 1.05, "(b)", transform=ax3.transAxes, fontsize=POSTER_PANEL_LABEL_SIZE, fontweight="bold", va="bottom")
 
-    # Figure caption - left-aligned, justified
+    # Figure caption - justified at 22pt
     caption = (
-        "$\\mathbf{(a)}$ Daily mean focused vent temperatures (\u00b0C) from high-temperature vents at "
-        "Axial Seamount with seafloor uplift (m, right axis) referenced to April 2015 post-eruption minimum. "
-        "$\\mathbf{(b)}$ Diffuse flow temperature (\u00b0C) from the OOI TMPSF array (RS03ASHS-MJ03B-07-TMPSFA301), "
-        "a 24-thermistor probe co-located with MISO instruments at the ASHES vent field. "
-        "Plotted value is the second-highest channel temperature at each daily timestep across "
-        "23 channels (ch06 excluded due to sensor failure in 2017), which tracks the strongest "
-        "diffuse flow signal while rejecting single-sensor artifacts. "
-        "Vertical lines mark Chadwick cruise (June 2024, MISO servicing) and OOI cruise "
-        "(Aug\u2013Sep 2024, OOI/TMPSF servicing). BPR shows ~1.6 m of re-inflation since the 2015 eruption."
+        "$\\mathbf{(a)}$ Daily mean high-temperature vent temps with seafloor uplift "
+        "(right axis). Uplift is differential seafloor displacement from bottom pressure "
+        "recorders, referenced to the April 2015 post-eruption minimum (0 m = maximum "
+        "deflation). "
+        "$\\mathbf{(b)}$ Diffuse flow from OOI TMPSF 24-thermistor array at ASHES "
+        "(2nd highest channel, ch06 excluded). Vertical lines mark Chadwick cruise "
+        "(June 2024) and OOI cruise (Aug 2024). BPR shows ~1.6 m re-inflation since 2015."
     )
-
-    # Calculate wrap width
-    caption_width = 0.85
-    caption_width_in = caption_width * fig.get_size_inches()[0]
-    char_width_in = POSTER_CAPTION_SIZE / 72 * 0.50
-    wrap_chars = int(caption_width_in / char_width_in)
-    caption_wrapped = textwrap.fill(caption, width=wrap_chars)
-
-    caption_ax = fig.add_axes([0.05, 0.01, caption_width, 0.13])
-    caption_ax.axis("off")
-    caption_ax.text(0.0, 1.0, caption_wrapped, ha="left", va="top", fontsize=POSTER_CAPTION_SIZE,
-                    transform=caption_ax.transAxes, family='sans-serif')
+    add_caption_justified(fig, caption, caption_width=0.85, fontsize=22)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
@@ -1785,7 +1806,7 @@ def main():
             fig_survey_overview(records, FIG_DIR / "survey_overview.png")
             fig_hightemp_comparison(records, summary, FIG_DIR / "survey_hightemp_comparison.png")
         if target in (None, "all", "poster_bpr"):
-            fig_poster_bpr(records, summary, bpr, FIG_DIR / "poster_temp_bpr_tmpsf.png", tmpsf=tmpsf)
+            fig_poster_bpr(records, summary, bpr, FIG_DIR / "fig3_poster_temp_bpr_tmpsf.png", tmpsf=tmpsf)
 
     # --- Historical 2011 eruption ---
     if target in (None, "all", "eruption_2011"):
@@ -1817,7 +1838,7 @@ def main():
                 print("Loading historical BPR data for 2011 figure...")
                 bpr_2011 = load_bpr_historical()
                 print(f"  BPR range: {bpr_2011.index.min()} to {bpr_2011.index.max()}")
-            fig_historical_eruption(historical_records, FIG_DIR / "eruption_2011_casper_diva.png",
+            fig_historical_eruption(historical_records, FIG_DIR / "fig1_eruption_2011_casper_diva.png",
                                     eruption_date=eruption_date, bpr=bpr_2011)
 
     # UNUSED: 2015-2019 figure (Vixen, Trevi) - Removed per user request
@@ -1885,7 +1906,7 @@ def main():
                 print("Loading historical BPR data...")
                 bpr_hist = load_bpr_historical()
                 print(f"  BPR range: {bpr_hist.index.min()} to {bpr_hist.index.max()}")
-            fig_eruption_2015_vce(records_2015_eruption, FIG_DIR / "eruption_2015_vixen_casper_escargot.png",
+            fig_eruption_2015_vce(records_2015_eruption, FIG_DIR / "fig2_eruption_2015_vixen_casper_escargot.png",
                                   eruption_date=eruption_2015, bpr=bpr_hist)
             fig_eruption_2015_vixen_casper(records_2015_eruption, FIG_DIR / "eruption_2015_vixen_casper.png",
                                            eruption_date=eruption_2015, bpr=bpr_hist)
