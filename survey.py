@@ -253,9 +253,10 @@ INSTRUMENTS_2015_ERUPTION = [
         "deployment": "2014-2019",
         "format": "ooi_trhph",
         "time_start": "2014-09-01",
-        "time_end": "2014-11-23",
+        "time_end": "2019-07-03",
         "deploy_threshold": 0,
         "mad_threshold": 2.0,
+        "max_drop_per_hour": 5.0,
     },
 ]
 
@@ -662,9 +663,9 @@ def add_caption_justified(fig, caption_text, caption_width=0.85, fontsize=POSTER
 
 def fig_historical_eruption(records, fig_path, eruption_date=None, bpr=None):
     """Figure: Historical vent temperatures around the 2011 eruption."""
-    # Create figure with space for caption below
-    fig = plt.figure(figsize=(10, 8), dpi=POSTER_DPI)
-    ax = fig.add_axes([0.1, 0.28, 0.80, 0.62])  # [left, bottom, width, height] - plot area
+    # Create figure — aspect ratio matches panel (a) of 2015 eruption figure
+    fig = plt.figure(figsize=(10, 5.5), dpi=POSTER_DPI)
+    ax = fig.add_axes([0.10, 0.30, 0.78, 0.58])  # [left, bottom, width, height] - plot area
 
     # Cut off data at local maximum (mid-July 2011) to exclude instrument recovery
     data_end = pd.Timestamp("2011-07-18")
@@ -682,7 +683,7 @@ def fig_historical_eruption(records, fig_path, eruption_date=None, bpr=None):
         ax.plot(daily.index, daily.values, color=color, linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
 
     ax.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax.set_ylabel("Temperature (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+    ax.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
     ax.set_title("April 2011 Eruption Response", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
     ax.grid(True, alpha=0.3)
     ax.tick_params(labelsize=POSTER_TICK_SIZE)
@@ -848,29 +849,32 @@ def load_bpr_historical():
 
 
 def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
-    """Figure: Vixen, Casper, and Escargot temperatures spanning the April 2015 eruption.
+    """Figure: Vixen, Casper, and Escargot individual profiles around the April 2015 eruption.
 
     Three panels:
-      (a) All three vents overlaid (full time range)
-      (b) Vixen individual profile (Sep 2014 – Aug 10 2015)
-      (c) Casper individual profile (full record)
+      (a) Vixen (Sep 2014 – Aug 10 2015)
+      (b) Casper (full record)
+      (c) Escargot (full record, crash period masked)
     """
-    fig, axes = plt.subplots(3, 1, figsize=(10, 11), dpi=POSTER_DPI,
-                             height_ratios=[2, 1, 1])
-    fig.subplots_adjust(hspace=0.25, bottom=0.28, top=0.96, left=0.10, right=0.88)
+    fig, axes = plt.subplots(3, 1, figsize=(10, 10), dpi=POSTER_DPI)
+    fig.subplots_adjust(hspace=0.45, bottom=0.26, top=0.96, left=0.10, right=0.88)
 
     # Find records by vent name
     vixen_rec = None
     casper_rec = None
+    escargot_rec = None
     for rec in records:
         if rec.attrs["vent"] == "Vixen":
             vixen_rec = rec
         elif rec.attrs["vent"] == "Casper":
             casper_rec = rec
+        elif rec.attrs["vent"] == "Escargot":
+            escargot_rec = rec
 
     # ─── Helper: add BPR + eruption line to a panel ───
     def _add_bpr_and_eruption(ax, t_start, t_end, show_eruption=True,
-                               show_legend=True, legend_loc="upper right"):
+                               show_legend=True, legend_loc="upper right",
+                               annot_side="left", annot_y_frac=0.75):
         ax_r = None
         if bpr is not None:
             ax_r = ax.twinx()
@@ -887,12 +891,19 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
             ax.axvline(eruption_date, color="#CC0000", linestyle="--",
                        linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.8)
             ymin, ymax = ax.get_ylim()
-            y_pos = ymin + (ymax - ymin) * 0.25
-            ax.annotate("April 24, 2015\neruption", xy=(eruption_date, y_pos),
-                        xytext=(-5, 0), textcoords="offset points",
-                        fontsize=POSTER_ANNOT_SIZE, color="#CC0000",
-                        va="center", ha="right", fontweight="bold",
-                        arrowprops=dict(arrowstyle='->', color='#CC0000', lw=1.5))
+            y_pos = ymin + (ymax - ymin) * annot_y_frac
+            if annot_side == "right":
+                ax.annotate("April 24, 2015\neruption", xy=(eruption_date, y_pos),
+                            xytext=(5, 0), textcoords="offset points",
+                            fontsize=POSTER_ANNOT_SIZE, color="#CC0000",
+                            va="center", ha="left", fontweight="bold",
+                            arrowprops=dict(arrowstyle='->', color='#CC0000', lw=1.5))
+            else:
+                ax.annotate("April 24, 2015\neruption", xy=(eruption_date, y_pos),
+                            xytext=(-5, 0), textcoords="offset points",
+                            fontsize=POSTER_ANNOT_SIZE, color="#CC0000",
+                            va="center", ha="right", fontweight="bold",
+                            arrowprops=dict(arrowstyle='->', color='#CC0000', lw=1.5))
         if show_legend:
             lines1, labels1 = ax.get_legend_handles_labels()
             if ax_r is not None:
@@ -902,51 +913,8 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
             ax.legend(lines1, labels1, loc=legend_loc,
                       fontsize=POSTER_LEGEND_SIZE, frameon=True, framealpha=0.9)
 
-    # ─── Panel (a): All three vents overlaid ───
+    # ─── Panel (a): Vixen (Sep 2014 – Aug 10 2015) ───
     ax_a = axes[0]
-    all_starts = []
-    all_ends = []
-    for rec in records:
-        deployed = rec[rec["deployed"]]
-        if len(deployed) > 0:
-            all_starts.append(deployed.index.min())
-            all_ends.append(deployed.index.max())
-
-    for rec in records:
-        deployed = rec[rec["deployed"]]
-        if len(deployed) == 0:
-            continue
-        vent = rec.attrs["vent"]
-        field = rec.attrs["field"]
-        field_abbr = "ID" if field == "International District" else field
-        color = VENT_COLORS.get(vent, "#333333")
-        label = f"{vent} ({field_abbr})"
-        daily = deployed["temperature"].resample("D").mean()
-        ax_a.plot(daily.index, daily.values, color=color,
-                  linewidth=POSTER_LINE_WIDTH, alpha=0.85, label=label)
-
-    ax_a.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-    ax_a.set_title("(a) April 2015 Eruption Response", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
-    ax_a.set_ylim(225, 350)
-    ax_a.grid(True, alpha=0.3)
-    ax_a.tick_params(labelsize=POSTER_TICK_SIZE)
-    set_spine_width(ax_a)
-
-    if all_starts:
-        xmin_a = min(all_starts) - pd.Timedelta(days=15)
-        xmax_a = max(all_ends) + pd.Timedelta(days=15)
-        ax_a.set_xlim(xmin_a, xmax_a)
-
-    ax_a.xaxis.set_major_locator(mdates.YearLocator())
-    ax_a.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-    ax_a.xaxis.set_minor_locator(mdates.MonthLocator(interval=6))
-    plt.setp(ax_a.xaxis.get_majorticklabels(), rotation=0, ha="center")
-
-    ax_a.yaxis.set_major_formatter(plt.FormatStrFormatter('%.1f'))
-    _add_bpr_and_eruption(ax_a, xmin_a, xmax_a, legend_loc="upper right")
-
-    # ─── Panel (b): Vixen (Sep 2014 – Aug 10 2015) ───
-    ax_b = axes[1]
     if vixen_rec is not None:
         t_start_v = vixen_rec[vixen_rec["deployed"]].index.min() - pd.Timedelta(days=7)
         t_end_v = pd.Timestamp("2015-08-10")
@@ -954,26 +922,24 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         daily = deployed["temperature"].resample("D").mean().loc[:t_end_v]
 
         color = VENT_COLORS.get("Vixen", "#D55E00")
-        ax_b.plot(daily.index, daily.values, color=color,
+        ax_a.plot(daily.index, daily.values, color=color,
                   linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Vixen (Coquille)")
-        ax_b.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        ax_b.grid(True, alpha=0.3)
-        ax_b.tick_params(labelsize=POSTER_TICK_SIZE)
-        set_spine_width(ax_b)
-        ax_b.set_xlim(t_start_v, t_end_v)
-        ax_b.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
-        ax_b.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-        plt.setp(ax_b.xaxis.get_majorticklabels(), rotation=0, ha="center")
+        ax_a.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        ax_a.set_title("(a) Vixen \u2014 Coquille", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+        ax_a.grid(True, alpha=0.3)
+        ax_a.tick_params(labelsize=POSTER_TICK_SIZE)
+        set_spine_width(ax_a)
+        ax_a.set_xlim(t_start_v, t_end_v)
+        ax_a.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
+        ax_a.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+        plt.setp(ax_a.xaxis.get_majorticklabels(), rotation=0, ha="center")
 
-        # Title inside plot, bottom left
-        ax_b.text(0.02, 0.08, "(b) Vixen \u2014 Coquille",
-                  transform=ax_b.transAxes, fontsize=POSTER_LABEL_SIZE, fontweight="bold",
-                  bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9))
+        ax_a.yaxis.set_major_formatter(plt.FormatStrFormatter('%.1f'))
+        _add_bpr_and_eruption(ax_a, t_start_v, t_end_v, show_legend=False,
+                              annot_side="left", annot_y_frac=0.15)
 
-        _add_bpr_and_eruption(ax_b, t_start_v, t_end_v, show_legend=False)
-
-    # ─── Panel (c): Casper (full record) ───
-    ax_c = axes[2]
+    # ─── Panel (b): Casper (full record) ───
+    ax_b = axes[1]
     if casper_rec is not None:
         deployed = casper_rec[casper_rec["deployed"]]
         daily = deployed["temperature"].resample("D").mean()
@@ -981,38 +947,63 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         t_end_c = daily.index.max() + pd.Timedelta(days=7)
 
         color = VENT_COLORS.get("Casper", "#009E73")
-        ax_c.plot(daily.index, daily.values, color=color,
+        ax_b.plot(daily.index, daily.values, color=color,
                   linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Casper (Coquille)")
+        ax_b.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        ax_b.set_title("(b) Casper \u2014 Coquille", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
+        ax_b.grid(True, alpha=0.3)
+        ax_b.tick_params(labelsize=POSTER_TICK_SIZE)
+        set_spine_width(ax_b)
+        ax_b.set_xlim(t_start_c, t_end_c)
+        ax_b.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
+        ax_b.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+        plt.setp(ax_b.xaxis.get_majorticklabels(), rotation=0, ha="center")
+
+        ax_b.yaxis.set_major_formatter(plt.FormatStrFormatter('%.1f'))
+
+        _add_bpr_and_eruption(ax_b, t_start_c, t_end_c, show_legend=False,
+                              annot_side="left", annot_y_frac=0.15)
+
+    # ─── Panel (c): Escargot (full record, crash period masked) ───
+    ax_c = axes[2]
+    if escargot_rec is not None:
+        deployed = escargot_rec[escargot_rec["deployed"]]
+        daily = deployed["temperature"].resample("D").mean()
+        # Mask crash period so line breaks naturally
+        daily.loc["2014-11-24":"2015-07-14"] = np.nan
+        t_start_e = daily.index.min() - pd.Timedelta(days=7)
+        t_end_e = daily.index.max() + pd.Timedelta(days=7)
+
+        color = VENT_COLORS.get("Escargot", "#CC79A7")
+        ax_c.plot(daily.index, daily.values, color=color,
+                  linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Escargot (Int'l District)")
         ax_c.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax_c.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+        ax_c.set_title("(c) Escargot \u2014 Int'l District", fontsize=POSTER_TITLE_SIZE, fontweight="bold")
         ax_c.grid(True, alpha=0.3)
         ax_c.tick_params(labelsize=POSTER_TICK_SIZE)
         set_spine_width(ax_c)
-        ax_c.set_xlim(t_start_c, t_end_c)
-        ax_c.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
-        ax_c.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+        ax_c.set_xlim(t_start_e, t_end_e)
+        ax_c.xaxis.set_major_locator(mdates.YearLocator())
+        ax_c.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+        ax_c.xaxis.set_minor_locator(mdates.MonthLocator(interval=6))
         plt.setp(ax_c.xaxis.get_majorticklabels(), rotation=0, ha="center")
 
         ax_c.yaxis.set_major_formatter(plt.FormatStrFormatter('%.1f'))
 
-        # Title inside plot, bottom left
-        ax_c.text(0.02, 0.08, "(c) Casper \u2014 Coquille",
-                  transform=ax_c.transAxes, fontsize=POSTER_LABEL_SIZE, fontweight="bold",
-                  bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9))
-
-        _add_bpr_and_eruption(ax_c, t_start_c, t_end_c, show_legend=False)
+        _add_bpr_and_eruption(ax_c, t_start_e, t_end_e, show_legend=False, annot_side="right")
 
     # Figure caption
     caption = (
-        "(a) Vent temperatures spanning the April 24, 2015 Axial Seamount eruption. "
-        "Vixen (vermillion) and Casper (teal) are MISO loggers at the Coquille vent field; "
-        "Escargot (purple) is an OOI cabled sensor (TRHPHA301) at the International District, "
-        "shown only during its stable pre-crash period (Sept\u2013Nov 2014). "
+        "Individual vent temperature profiles spanning the April 24, 2015 Axial Seamount eruption. "
         "Dashed blue line shows BPR seafloor uplift (m). "
-        "(b) Vixen detail from deployment through Aug 2015, showing the co-eruptive "
-        "temperature perturbation and initial post-eruption decline. "
-        "(c) Casper full record, showing a ~6\u00b0C post-eruption temperature drop "
-        "and increased variability."
+        "$\\mathbf{(a)}$ Vixen (MISO, Coquille field) from deployment through Aug 2015, showing the "
+        "co-eruptive temperature perturbation and initial post-eruption decline. "
+        "$\\mathbf{(b)}$ Casper (MISO, Coquille field) full record, showing a ~6\u00b0C post-eruption "
+        "temperature drop and increased variability. "
+        "$\\mathbf{(c)}$ Escargot (OOI TRHPHA301, Int'l District) full record (2014\u20132019), showing "
+        "~315\u00b0C pre-eruptive stability, post-eruptive decline to ~255\u00b0C, and gradual multi-year recovery. "
+        "Gap in Escargot record (Nov 2014\u2013Jul 2015) reflects instrument crash during eruption period."
     )
     add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
@@ -1663,11 +1654,11 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
             ypad = (tmpsf_visible.max() - tmpsf_visible.min()) * 0.1
             ax3.set_ylim(tmpsf_visible.min() - ypad, tmpsf_visible.max() + ypad)
 
-        # VISIONS cruise annotation on TMPSF panel (OOI servicing, Sept 2024)
-        visions_cruise = pd.Timestamp("2024-09-12")
+        # OOI cruise annotation on TMPSF panel (OOI servicing, Aug–Sep 2024)
+        visions_cruise = pd.Timestamp("2024-08-06")
         if xmin <= visions_cruise <= xmax:
             ax3.axvline(visions_cruise, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
-            ax3.annotate("VISIONS\ncruise", xy=(visions_cruise, tmpsf_visible.max()),
+            ax3.annotate("OOI\ncruise", xy=(visions_cruise, tmpsf_visible.max()),
                          xytext=(5, -5), textcoords="offset points",
                          fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top",
                          arrowprops=dict(arrowstyle='->', color='#666666', lw=1.5))
@@ -1703,11 +1694,15 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
 
     # Figure caption - left-aligned, justified
     caption = (
-        "(a) Daily mean focused vent temperatures (°C) from high-temperature vents at "
+        "$\\mathbf{(a)}$ Daily mean focused vent temperatures (\u00b0C) from high-temperature vents at "
         "Axial Seamount with seafloor uplift (m, right axis) referenced to April 2015 post-eruption minimum. "
-        "(b) TMPSF diffuse flow temperature (°C) from ASHES field hot channels (excl. ch06). "
-        "Vertical lines mark Chadwick cruise (June 2024, MISO servicing) and VISIONS cruise "
-        "(Sept 2024, OOI/TMPSF servicing). BPR shows ~1.6 m of re-inflation since the 2015 eruption."
+        "$\\mathbf{(b)}$ Diffuse flow temperature (\u00b0C) from the OOI TMPSF array (RS03ASHS-MJ03B-07-TMPSFA301), "
+        "a 24-thermistor probe co-located with MISO instruments at the ASHES vent field. "
+        "Plotted value is the second-highest channel temperature at each daily timestep across "
+        "23 channels (ch06 excluded due to sensor failure in 2017), which tracks the strongest "
+        "diffuse flow signal while rejecting single-sensor artifacts. "
+        "Vertical lines mark Chadwick cruise (June 2024, MISO servicing) and OOI cruise "
+        "(Aug\u2013Sep 2024, OOI/TMPSF servicing). BPR shows ~1.6 m of re-inflation since the 2015 eruption."
     )
 
     # Calculate wrap width
@@ -1728,89 +1723,102 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="MISO survey analysis and figure generation")
+    parser.add_argument("--figure", "-f", type=str, default=None,
+                        help="Generate only a specific figure group: "
+                             "survey, poster_bpr, eruption_2011, eruption_2015, all (default: all)")
+    args = parser.parse_args()
+    target = args.figure
+
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     FIG_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Load all instruments
-    records = []
-    for config in INSTRUMENTS:
-        vent = config["vent"]
-        inst = config["instrument"]
-        print(f"Loading {vent} ({inst})...")
-        try:
-            rec = load_instrument(config)
-            records.append(rec)
-            deployed = rec[rec["deployed"]]
-            n_dep = len(deployed)
-            if n_dep > 0:
-                temp = deployed["temperature"].dropna()
-                print(f"  Deployed samples: {n_dep:,}  |  "
-                      f"Temp: {temp.min():.1f}–{temp.max():.1f}°C  |  "
-                      f"Capped: {rec.attrs['n_capped']}  Spikes: {rec.attrs['n_spikes']}")
-            else:
-                print(f"  No deployed samples (total rows: {len(rec)})")
-        except Exception as e:
-            print(f"  ERROR loading {vent} ({inst}): {e}")
-
-    # Summary table
-    print("\n" + "=" * 90)
-    print("INSTRUMENT SUMMARY")
-    print("=" * 90)
-    summary = compute_summary(records)
-    print(summary.to_string(index=False))
-    summary.to_csv(DATA_DIR / "survey_summary.csv", index=False)
-    print(f"\nSaved: {DATA_DIR / 'survey_summary.csv'}")
-
-    # Load BPR
+    # --- Current survey instruments (needed for survey, poster_bpr) ---
+    records = None
+    summary = None
     bpr = None
-    if BPR_PATH.exists():
-        bpr = pd.read_parquet(BPR_PATH)
-        print(f"\nBPR data loaded: {bpr.index.min()} to {bpr.index.max()}")
-
-    # Load TMPSF
     tmpsf = None
-    if TMPSF_PATH.exists():
-        tmpsf = pd.read_parquet(TMPSF_PATH)
-        print(f"TMPSF data loaded: {tmpsf.index.min()} to {tmpsf.index.max()}")
+    if target in (None, "all", "survey", "poster_bpr"):
+        records = []
+        for config in INSTRUMENTS:
+            vent = config["vent"]
+            inst = config["instrument"]
+            print(f"Loading {vent} ({inst})...")
+            try:
+                rec = load_instrument(config)
+                records.append(rec)
+                deployed = rec[rec["deployed"]]
+                n_dep = len(deployed)
+                if n_dep > 0:
+                    temp = deployed["temperature"].dropna()
+                    print(f"  Deployed samples: {n_dep:,}  |  "
+                          f"Temp: {temp.min():.1f}–{temp.max():.1f}°C  |  "
+                          f"Capped: {rec.attrs['n_capped']}  Spikes: {rec.attrs['n_spikes']}")
+                else:
+                    print(f"  No deployed samples (total rows: {len(rec)})")
+            except Exception as e:
+                print(f"  ERROR loading {vent} ({inst}): {e}")
 
-    # Figures
-    print("\nGenerating figures...")
-    fig_survey_overview(records, FIG_DIR / "survey_overview.png")
-    fig_hightemp_comparison(records, summary, FIG_DIR / "survey_hightemp_comparison.png")
-    fig_poster_bpr(records, summary, bpr, FIG_DIR / "poster_temp_bpr_tmpsf.png", tmpsf=tmpsf)
+        # Summary table
+        print("\n" + "=" * 90)
+        print("INSTRUMENT SUMMARY")
+        print("=" * 90)
+        summary = compute_summary(records)
+        print(summary.to_string(index=False))
+        summary.to_csv(DATA_DIR / "survey_summary.csv", index=False)
+        print(f"\nSaved: {DATA_DIR / 'survey_summary.csv'}")
 
-    # Load and plot historical data (2010-2011 eruption period)
-    print("\nLoading historical instruments (2010-2011)...")
-    historical_records = []
-    for config in HISTORICAL_INSTRUMENTS:
-        vent = config["vent"]
-        inst = config["instrument"]
-        print(f"Loading {vent} ({inst})...")
-        try:
-            rec = load_historical_instrument(config)
-            historical_records.append(rec)
-            deployed = rec[rec["deployed"]]
-            n_dep = len(deployed)
-            if n_dep > 0:
-                temp = deployed["temperature"].dropna()
-                print(f"  Deployed samples: {n_dep:,}  |  "
-                      f"Temp: {temp.min():.1f}–{temp.max():.1f}°C  |  "
-                      f"Capped: {rec.attrs['n_capped']}  Spikes: {rec.attrs['n_spikes']}")
-            else:
-                print(f"  No deployed samples (total rows: {len(rec)})")
-        except Exception as e:
-            print(f"  ERROR loading {vent} ({inst}): {e}")
+        # Load BPR
+        if BPR_PATH.exists():
+            bpr = pd.read_parquet(BPR_PATH)
+            print(f"\nBPR data loaded: {bpr.index.min()} to {bpr.index.max()}")
 
-    if historical_records:
-        eruption_date = pd.Timestamp("2011-04-06")  # April 2011 eruption
-        # Load historical BPR for 2011 figure
-        bpr_2011 = None
-        if BPR_HIST_PATH.exists():
-            print("Loading historical BPR data for 2011 figure...")
-            bpr_2011 = load_bpr_historical()
-            print(f"  BPR range: {bpr_2011.index.min()} to {bpr_2011.index.max()}")
-        fig_historical_eruption(historical_records, FIG_DIR / "eruption_2011_casper_diva.png",
-                                eruption_date=eruption_date, bpr=bpr_2011)
+        # Load TMPSF
+        if TMPSF_PATH.exists():
+            tmpsf = pd.read_parquet(TMPSF_PATH)
+            print(f"TMPSF data loaded: {tmpsf.index.min()} to {tmpsf.index.max()}")
+
+        # Figures
+        print("\nGenerating figures...")
+        if target in (None, "all", "survey"):
+            fig_survey_overview(records, FIG_DIR / "survey_overview.png")
+            fig_hightemp_comparison(records, summary, FIG_DIR / "survey_hightemp_comparison.png")
+        if target in (None, "all", "poster_bpr"):
+            fig_poster_bpr(records, summary, bpr, FIG_DIR / "poster_temp_bpr_tmpsf.png", tmpsf=tmpsf)
+
+    # --- Historical 2011 eruption ---
+    if target in (None, "all", "eruption_2011"):
+        print("\nLoading historical instruments (2010-2011)...")
+        historical_records = []
+        for config in HISTORICAL_INSTRUMENTS:
+            vent = config["vent"]
+            inst = config["instrument"]
+            print(f"Loading {vent} ({inst})...")
+            try:
+                rec = load_historical_instrument(config)
+                historical_records.append(rec)
+                deployed = rec[rec["deployed"]]
+                n_dep = len(deployed)
+                if n_dep > 0:
+                    temp = deployed["temperature"].dropna()
+                    print(f"  Deployed samples: {n_dep:,}  |  "
+                          f"Temp: {temp.min():.1f}–{temp.max():.1f}°C  |  "
+                          f"Capped: {rec.attrs['n_capped']}  Spikes: {rec.attrs['n_spikes']}")
+                else:
+                    print(f"  No deployed samples (total rows: {len(rec)})")
+            except Exception as e:
+                print(f"  ERROR loading {vent} ({inst}): {e}")
+
+        if historical_records:
+            eruption_date = pd.Timestamp("2011-04-06")  # April 2011 eruption
+            bpr_2011 = None
+            if BPR_HIST_PATH.exists():
+                print("Loading historical BPR data for 2011 figure...")
+                bpr_2011 = load_bpr_historical()
+                print(f"  BPR range: {bpr_2011.index.min()} to {bpr_2011.index.max()}")
+            fig_historical_eruption(historical_records, FIG_DIR / "eruption_2011_casper_diva.png",
+                                    eruption_date=eruption_date, bpr=bpr_2011)
 
     # UNUSED: 2015-2019 figure (Vixen, Trevi) - Removed per user request
     # # Load and plot 2015-2019 data (Vixen, Trevi)
@@ -1840,62 +1848,63 @@ def main():
     #     fig_2015_2019(records_2015, FIG_DIR / "eruption_2015_vixen_trevi.png",
     #                   eruption_date=eruption_2015)
 
-    # Load and plot 2015 eruption data (Vixen, Casper, Escargot)
-    print("\nLoading 2015 eruption instruments (Vixen, Casper, Escargot)...")
-    records_2015_eruption = []
-    for config in INSTRUMENTS_2015_ERUPTION:
-        vent = config["vent"]
-        inst = config["instrument"]
-        fmt = config["format"]
-        print(f"Loading {vent} ({inst})...")
-        try:
-            if fmt == "mat_all":
-                rec = load_mat_all_instrument(config)
-            elif fmt == "ooi_trhph":
-                rec = load_ooi_trhph_instrument(config)
-            else:
-                raise ValueError(f"Unknown format: {fmt}")
-            records_2015_eruption.append(rec)
-            deployed = rec[rec["deployed"]]
-            n_dep = len(deployed)
-            if n_dep > 0:
-                temp = deployed["temperature"].dropna()
-                print(f"  Deployed samples: {n_dep:,}  |  "
-                      f"Temp: {temp.min():.1f}–{temp.max():.1f}°C  |  "
-                      f"Capped: {rec.attrs['n_capped']}  Spikes: {rec.attrs['n_spikes']}")
-            else:
-                print(f"  No deployed samples (total rows: {len(rec)})")
-        except Exception as e:
-            print(f"  ERROR loading {vent} ({inst}): {e}")
+    # --- 2015 eruption (Vixen, Casper, Escargot) ---
+    if target in (None, "all", "eruption_2015"):
+        print("\nLoading 2015 eruption instruments (Vixen, Casper, Escargot)...")
+        records_2015_eruption = []
+        for config in INSTRUMENTS_2015_ERUPTION:
+            vent = config["vent"]
+            inst = config["instrument"]
+            fmt = config["format"]
+            print(f"Loading {vent} ({inst})...")
+            try:
+                if fmt == "mat_all":
+                    rec = load_mat_all_instrument(config)
+                elif fmt == "ooi_trhph":
+                    rec = load_ooi_trhph_instrument(config)
+                else:
+                    raise ValueError(f"Unknown format: {fmt}")
+                records_2015_eruption.append(rec)
+                deployed = rec[rec["deployed"]]
+                n_dep = len(deployed)
+                if n_dep > 0:
+                    temp = deployed["temperature"].dropna()
+                    print(f"  Deployed samples: {n_dep:,}  |  "
+                          f"Temp: {temp.min():.1f}–{temp.max():.1f}°C  |  "
+                          f"Capped: {rec.attrs['n_capped']}  Spikes: {rec.attrs['n_spikes']}")
+                else:
+                    print(f"  No deployed samples (total rows: {len(rec)})")
+            except Exception as e:
+                print(f"  ERROR loading {vent} ({inst}): {e}")
 
-    if records_2015_eruption:
-        eruption_2015 = pd.Timestamp("2015-04-24")
-        # Load historical BPR
-        bpr_hist = None
-        if BPR_HIST_PATH.exists():
-            print("Loading historical BPR data...")
-            bpr_hist = load_bpr_historical()
-            print(f"  BPR range: {bpr_hist.index.min()} to {bpr_hist.index.max()}")
-        fig_eruption_2015_vce(records_2015_eruption, FIG_DIR / "eruption_2015_vixen_casper_escargot.png",
-                              eruption_date=eruption_2015, bpr=bpr_hist)
-        fig_eruption_2015_vixen_casper(records_2015_eruption, FIG_DIR / "eruption_2015_vixen_casper.png",
-                                       eruption_date=eruption_2015, bpr=bpr_hist)
+        if records_2015_eruption:
+            eruption_2015 = pd.Timestamp("2015-04-24")
+            # Load historical BPR
+            bpr_hist = None
+            if BPR_HIST_PATH.exists():
+                print("Loading historical BPR data...")
+                bpr_hist = load_bpr_historical()
+                print(f"  BPR range: {bpr_hist.index.min()} to {bpr_hist.index.max()}")
+            fig_eruption_2015_vce(records_2015_eruption, FIG_DIR / "eruption_2015_vixen_casper_escargot.png",
+                                  eruption_date=eruption_2015, bpr=bpr_hist)
+            fig_eruption_2015_vixen_casper(records_2015_eruption, FIG_DIR / "eruption_2015_vixen_casper.png",
+                                           eruption_date=eruption_2015, bpr=bpr_hist)
 
-        # Individual vent plots
-        for rec in records_2015_eruption:
-            vent = rec.attrs["vent"]
-            if vent == "Vixen":
-                fig_single_vent_2015(rec, FIG_DIR / "eruption_2015_vixen.png",
-                                     eruption_date=eruption_2015, bpr=bpr_hist,
-                                     t_end_override=pd.Timestamp("2015-08-10"))
-            elif vent == "Casper":
-                fig_single_vent_2015(rec, FIG_DIR / "eruption_2015_casper.png",
-                                     eruption_date=eruption_2015, bpr=bpr_hist)
-            elif vent == "Escargot":
-                fig_single_vent_2015(rec, FIG_DIR / "eruption_2015_escargot.png",
-                                     eruption_date=eruption_2015, bpr=bpr_hist)
-        fig_escargot_multi(records_2015_eruption, FIG_DIR / "eruption_2015_escargot_multi.png",
-                           eruption_date=eruption_2015, bpr=bpr_hist)
+            # Individual vent plots
+            for rec in records_2015_eruption:
+                vent = rec.attrs["vent"]
+                if vent == "Vixen":
+                    fig_single_vent_2015(rec, FIG_DIR / "eruption_2015_vixen.png",
+                                         eruption_date=eruption_2015, bpr=bpr_hist,
+                                         t_end_override=pd.Timestamp("2015-08-10"))
+                elif vent == "Casper":
+                    fig_single_vent_2015(rec, FIG_DIR / "eruption_2015_casper.png",
+                                         eruption_date=eruption_2015, bpr=bpr_hist)
+                elif vent == "Escargot":
+                    fig_single_vent_2015(rec, FIG_DIR / "eruption_2015_escargot.png",
+                                         eruption_date=eruption_2015, bpr=bpr_hist)
+            fig_escargot_multi(records_2015_eruption, FIG_DIR / "eruption_2015_escargot_multi.png",
+                               eruption_date=eruption_2015, bpr=bpr_hist)
 
     print("\nDone!")
 
