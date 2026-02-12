@@ -396,7 +396,7 @@ def render_site_overview(fig, ax):
 
     # Panel label (inside axes, upper-left)
     ax.set_title('(a) Axial Seamount Caldera', fontsize=FS_PANEL_LABEL,
-                 fontweight='bold', pad=10)
+                 fontweight='bold', pad=21)
 
     # Gridlines
     gl = ax.gridlines(crs=data_crs, draw_labels=True,
@@ -537,7 +537,7 @@ def render_ashes_detail(fig, ax):
 
     # Panel label (inside axes, upper-left)
     ax.set_title('(b) ASHES Vent Field', fontsize=FS_PANEL_LABEL,
-                 fontweight='bold', pad=10)
+                 fontweight='bold', pad=21)
 
     # Gridlines (lat/lon reference)
     gl = ax.gridlines(crs=data_crs, draw_labels=True,
@@ -665,7 +665,7 @@ def render_intl_district_detail(fig, ax, target_dims=None):
 
     # Panel label (inside axes, upper-left)
     ax.set_title('(c) International District', fontsize=FS_PANEL_LABEL,
-                 fontweight='bold', pad=10)
+                 fontweight='bold', pad=21)
 
     # Gridlines (lat/lon reference)
     gl = ax.gridlines(crs=data_crs, draw_labels=True,
@@ -745,36 +745,59 @@ def make_composite_map():
     caption_ax = fig.add_axes([0.08, 0.005, caption_width, 0.11])
     caption_ax.axis('off')
 
+    caption_fontsize = 22
     caption_text = (
-        "This figure shows the hydrothermal vent fields of Axial Seamount "
-        "at multiple spatial scales. Panel (a) provides an overview of the "
-        "caldera with five vent field locations and two OOI bottom pressure "
-        "recorder (BPR) stations (MJ03E, MJ03F) plotted on 1 m AUV bathymetry "
-        "(MBARI, 2025) with 20 m depth contours. Recent lava flows from the "
-        "2011 (white) and 2015 (orange) eruptions are shown with color "
-        "intensity indicating flow size; each eruption produced ~12 distinct "
-        "flow lobes totaling 10\u201312 km² of new lava (Clague et al., 2017). "
-        "Panel (b) shows a detailed view of the ASHES vent field mapped with "
-        "1 cm LASS lidar bathymetry (MBARI, 2025) with 1 m depth contours. "
-        "Panel (c) shows the International District vent field at the same "
-        "scale, also mapped with 1 cm LASS lidar bathymetry (MBARI, 2025) "
-        "with 1 m depth contours. Individual vents from the 2024\u20132025 MISO "
-        "deployment are marked with yellow diamonds. Detail panels use locally "
-        "enhanced color stretch; the colorbar shows the overview depth range."
+        "Hydrothermal vent fields of Axial Seamount at multiple scales. "
+        "(a) Caldera overview on 1 m AUV bathymetry (MBARI, 2025) with "
+        "BPR stations used to calculate differential uplift (red triangles), vent fields, and 2011 (white) / "
+        "2015 (orange) lava flows. (b) ASHES and (c) International District "
+        "at 1 cm LASS lidar resolution (MBARI, 2025). Yellow diamonds mark "
+        "individual vents from the 2024\u20132025 MISO deployment."
     )
 
-    # Compute wrap width dynamically from actual caption area - tighter packing
-    # Figure is 20" wide; use 0.0065" per pt for tighter char width estimate
-    caption_inches = caption_width * 20
-    char_width = FS_CAPTION * 0.0065  # Tighter estimate to fit more words per line
-    chars_per_line = int(caption_inches / char_width)
-    wrapped_caption = textwrap.fill(caption_text, width=chars_per_line)
-    caption_ax.text(0.0, 1.0, wrapped_caption, fontsize=FS_CAPTION, va='top',
-                    transform=caption_ax.transAxes, family='sans-serif',
-                    linespacing=1.4)
+    # Renderer-based justified caption
+    caption_width_in = caption_width * fig.get_size_inches()[0]
+    char_width_in = caption_fontsize / 72 * 0.50
+    wrap_chars = int(caption_width_in / char_width_in)
+    lines = textwrap.wrap(caption_text, width=wrap_chars)
+
+    ax_bbox = caption_ax.get_window_extent(renderer)
+
+    # Measure line height
+    sample = caption_ax.text(0, 0, "Tg", fontsize=caption_fontsize, family='sans-serif',
+                             transform=caption_ax.transAxes)
+    sample_bbox = sample.get_window_extent(renderer)
+    line_height = (sample_bbox.height * 1.35) / ax_bbox.height
+    sample.remove()
+
+    for i, line in enumerate(lines):
+        y = 1.0 - i * line_height
+        words = line.split()
+
+        if i < len(lines) - 1 and len(words) > 1:
+            word_widths = []
+            for word in words:
+                t = caption_ax.text(0, 0, word, fontsize=caption_fontsize, family='sans-serif',
+                                    transform=caption_ax.transAxes)
+                wb = t.get_window_extent(renderer)
+                word_widths.append(wb.width / ax_bbox.width)
+                t.remove()
+
+            total_word_width = sum(word_widths)
+            remaining = 1.0 - total_word_width
+            gap = remaining / (len(words) - 1)
+
+            x = 0.0
+            for j, word in enumerate(words):
+                caption_ax.text(x, y, word, fontsize=caption_fontsize, family='sans-serif',
+                                transform=caption_ax.transAxes, va='top', ha='left')
+                x += word_widths[j] + gap
+        else:
+            caption_ax.text(0.0, y, line, fontsize=caption_fontsize, family='sans-serif',
+                            transform=caption_ax.transAxes, va='top', ha='left')
 
     # Save
-    output_file = OUTPUT_DIR / "composite_vent_field_maps.png"
+    output_file = OUTPUT_DIR / "map1_composite_vent_field_maps.png"
     print(f"\nSaving to {output_file}...")
     fig.savefig(output_file, dpi=600, facecolor='white', bbox_inches='tight')
     plt.close()
