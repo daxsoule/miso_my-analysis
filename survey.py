@@ -893,7 +893,9 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
       (c) Escargot (full record, crash period masked)
     """
     fig, axes = plt.subplots(3, 1, figsize=(10, 10), dpi=POSTER_DPI)
-    fig.subplots_adjust(hspace=0.75, bottom=0.26, top=0.96, left=0.10, right=0.88)
+    fig.subplots_adjust(hspace=0.35, bottom=0.26, top=0.93, left=0.10, right=0.88)
+    fig.suptitle("April 2015 Eruption Response", fontsize=POSTER_TITLE_SIZE,
+                 fontweight="bold", y=0.97)
 
     # Find records by vent name
     vixen_rec = None
@@ -961,7 +963,9 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         ax_a.plot(daily.index, daily.values, color=color,
                   linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Vixen (Coquille)")
         ax_a.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        ax_a.set_title("(a) Vixen \u2014 Coquille", fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
+        ax_a.text(0.02, 0.08, "(a)", transform=ax_a.transAxes,
+                  fontsize=POSTER_LEGEND_SIZE, fontweight="bold", va="bottom", ha="left",
+                  bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="none", alpha=0.8))
         ax_a.grid(True, alpha=0.3)
         ax_a.tick_params(labelsize=POSTER_TICK_SIZE)
         set_spine_width(ax_a)
@@ -986,7 +990,9 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         ax_b.plot(daily.index, daily.values, color=color,
                   linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Casper (Coquille)")
         ax_b.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        ax_b.set_title("(b) Casper \u2014 Coquille", fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
+        ax_b.text(0.02, 0.08, "(b)", transform=ax_b.transAxes,
+                  fontsize=POSTER_LEGEND_SIZE, fontweight="bold", va="bottom", ha="left",
+                  bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="none", alpha=0.8))
         ax_b.grid(True, alpha=0.3)
         ax_b.tick_params(labelsize=POSTER_TICK_SIZE)
         set_spine_width(ax_b)
@@ -1015,7 +1021,9 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
                   linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Escargot (Int'l District)")
         ax_c.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax_c.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        ax_c.set_title("(c) Escargot \u2014 Int'l District", fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
+        ax_c.text(0.02, 0.08, "(c)", transform=ax_c.transAxes,
+                  fontsize=POSTER_LEGEND_SIZE, fontweight="bold", va="bottom", ha="left",
+                  bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="none", alpha=0.8))
         ax_c.grid(True, alpha=0.3)
         ax_c.tick_params(labelsize=POSTER_TICK_SIZE)
         set_spine_width(ax_c)
@@ -1597,14 +1605,9 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         ("El Guapo (Top)", "2024-2025"): {"color": "#56B4E9", "ls": "--", "lw": POSTER_LINE_WIDTH, "label": "El Guapo Top (ID, 24–25)"},
     }
 
-    # Two panels if TMPSF available, otherwise single (with space for caption)
-    if tmpsf is not None:
-        fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 12), dpi=POSTER_DPI,
-                                        height_ratios=[2, 1], sharex=True)
-        fig.subplots_adjust(bottom=0.22, top=0.94, right=0.88, hspace=0.20)
-    else:
-        fig, ax1 = plt.subplots(figsize=(10, 10), dpi=POSTER_DPI)
-        fig.subplots_adjust(bottom=0.25, right=0.82)
+    # Single panel (with space for caption) — plot height matches Fig 1
+    fig, ax1 = plt.subplots(figsize=(10, 5.5), dpi=POSTER_DPI)
+    fig.subplots_adjust(bottom=0.30, top=0.88, right=0.88)
 
     for rec in high_recs:
         deployed = rec[rec["deployed"]]
@@ -1660,47 +1663,9 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     else:
         all_lines, all_labels = ax1.get_legend_handles_labels()
 
-    # TMPSF panel
-    if tmpsf is not None:
-        # 2nd highest of all channels at each timestep (excluding ch06 which has sensor issues)
-        # This avoids single-sensor artifacts while still showing high values
-        all_channel_nums = [n for n in range(1, 25) if n != 6]  # ch06 excluded
-        all_cols = [f"temperature{n:02d}" for n in all_channel_nums if f"temperature{n:02d}" in tmpsf.columns]
-        # Get 2nd highest by sorting and taking index -2
-        tmpsf_2nd = tmpsf[all_cols].apply(lambda row: row.nlargest(2).iloc[-1], axis=1)
-
-        ax3.plot(tmpsf_2nd.index, tmpsf_2nd.values,
-                 color="#7A0177", linewidth=POSTER_LINE_WIDTH, alpha=0.85)
-        ax3.set_ylabel("TMPSF (°C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        ax3.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        ax3.tick_params(labelsize=POSTER_TICK_SIZE)
-        # Clean date formatting for x-axis
-        ax3.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
-        ax3.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-        ax3.grid(True, alpha=0.3)
-        ax3.set_title("(b) Diffuse Flow \u2014 ASHES",
-                      fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
-        set_spine_width(ax3)
-
-        # Constrain TMPSF y-axis to visible range
-        tmpsf_visible = tmpsf_2nd.loc[xmin:xmax].dropna()
-        if len(tmpsf_visible) > 0:
-            ypad = (tmpsf_visible.max() - tmpsf_visible.min()) * 0.1
-            ax3.set_ylim(tmpsf_visible.min() - ypad, tmpsf_visible.max() + ypad)
-
-        # OOI cruise annotation on TMPSF panel (OOI servicing, Aug–Sep 2024)
-        visions_cruise = pd.Timestamp("2024-08-06")
-        if xmin <= visions_cruise <= xmax:
-            ax3.axvline(visions_cruise, color="#666666", linestyle=":", linewidth=POSTER_ANNOT_LINE_WIDTH, alpha=0.7)
-            ax3.annotate("OOI\ncruise", xy=(visions_cruise, tmpsf_visible.max()),
-                         xytext=(5, -5), textcoords="offset points",
-                         fontsize=POSTER_ANNOT_SIZE, color="#666666", va="top",
-                         arrowprops=dict(arrowstyle='->', color='#666666', lw=1.5))
-    else:
-        ax1.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
-        # Clean date formatting for x-axis
-        ax1.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
-        ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+    ax1.set_xlabel("Date", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
+    ax1.xaxis.set_major_locator(mdates.MonthLocator(interval=6))
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
 
     # Chadwick cruise annotation on main panel (MISO servicing, June 2024)
     chadwick_cruise = pd.Timestamp("2024-06-26")
@@ -1716,25 +1681,18 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
                loc="lower left", bbox_to_anchor=(0.62, 0.02), ncol=1,
                fontsize=POSTER_LEGEND_SIZE - 2, frameon=True, framealpha=0.9)
 
-    ax1.set_title("Vent Temperatures & Deformation",
+    ax1.set_title("Recent System Changes",
                   fontsize=POSTER_TITLE_SIZE, fontweight="bold", pad=21)
     ax1.grid(True, alpha=0.3)
     set_spine_width(ax1)
 
-    # Panel labels (a), (b) for reference in text
-    ax1.text(-0.08, 1.02, "(a)", transform=ax1.transAxes, fontsize=POSTER_PANEL_LABEL_SIZE, fontweight="bold", va="bottom")
-    if tmpsf is not None:
-        ax3.text(-0.08, 1.05, "(b)", transform=ax3.transAxes, fontsize=POSTER_PANEL_LABEL_SIZE, fontweight="bold", va="bottom")
-
     # Figure caption - justified at 22pt
     caption = (
-        "$\\mathbf{(a)}$ Daily mean high-temperature vent temps with seafloor uplift "
+        "Daily mean high-temperature vent temps with seafloor uplift "
         "(right axis). Uplift is differential seafloor displacement from bottom pressure "
         "recorders, referenced to the April 2015 post-eruption minimum (0 m = maximum "
-        "deflation). "
-        "$\\mathbf{(b)}$ Diffuse flow from OOI TMPSF 24-thermistor array at ASHES "
-        "(2nd highest channel, ch06 excluded). Vertical lines mark Chadwick cruise "
-        "(June 2024) and OOI cruise (Aug 2024). BPR shows ~1.6 m re-inflation since 2015."
+        "deflation). Vertical line marks Chadwick cruise "
+        "(June 2024). BPR shows ~1.6 m re-inflation since 2015."
     )
     add_caption_justified(fig, caption, caption_width=0.85, fontsize=22)
 
