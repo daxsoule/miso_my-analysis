@@ -217,8 +217,6 @@ INSTRUMENTS_2015_ERUPTION = [
         "format": "mat_all",
         "time_start": "2014-09-01",
         "time_end": "2017-08-31",
-        "mad_threshold": 2.0,
-        "max_drop_per_hour": 5.0,
     },
     {
         "file": DATA_HISTORICAL / "casper" / "Casper-ALL-2006-2015.mat",
@@ -229,8 +227,6 @@ INSTRUMENTS_2015_ERUPTION = [
         "format": "mat_all",
         "time_start": "2014-09-01",
         "time_end": "2015-08-31",
-        "mad_threshold": 2.0,
-        "max_drop_per_hour": 5.0,
     },
     {
         "files": [
@@ -957,10 +953,10 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         t_start_v = vixen_rec[vixen_rec["deployed"]].index.min() - pd.Timedelta(days=7)
         t_end_v = pd.Timestamp("2015-08-10")
         deployed = vixen_rec[vixen_rec["deployed"]]
-        daily = deployed["temperature"].resample("D").mean().loc[:t_end_v]
+        temp_v = deployed["temperature"].loc[:t_end_v]
 
         color = VENT_COLORS.get("Vixen", "#D55E00")
-        ax_a.plot(daily.index, daily.values, color=color,
+        ax_a.plot(temp_v.index, temp_v.values, color=color,
                   linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Vixen (Coquille)")
         ax_a.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax_a.text(0.02, 0.08, "(a)", transform=ax_a.transAxes,
@@ -982,12 +978,12 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
     ax_b = axes[1]
     if casper_rec is not None:
         deployed = casper_rec[casper_rec["deployed"]]
-        daily = deployed["temperature"].resample("D").mean()
-        t_start_c = daily.index.min() - pd.Timedelta(days=7)
-        t_end_c = daily.index.max() + pd.Timedelta(days=7)
+        temp_c = deployed["temperature"]
+        t_start_c = temp_c.index.min() - pd.Timedelta(days=7)
+        t_end_c = temp_c.index.max() + pd.Timedelta(days=7)
 
         color = VENT_COLORS.get("Casper", "#009E73")
-        ax_b.plot(daily.index, daily.values, color=color,
+        ax_b.plot(temp_c.index, temp_c.values, color=color,
                   linewidth=POSTER_LINE_WIDTH, alpha=0.85, label="Casper (Coquille)")
         ax_b.set_ylabel("Temp (\u00b0C)", fontsize=POSTER_LABEL_SIZE, fontweight="bold")
         ax_b.text(0.02, 0.08, "(b)", transform=ax_b.transAxes,
