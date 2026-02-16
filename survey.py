@@ -768,7 +768,7 @@ def fig_historical_eruption(records, fig_path, eruption_date=None, bpr=None):
     # Figure caption - left-aligned, justified
     caption = (
         "Vent temperatures spanning the April 6, 2011 Axial Seamount eruption. "
-        "Diva (vermillion, International District) showed a stronger response (~70°C drop) "
+        "Diva (red, International District) showed a stronger response (~70°C drop) "
         "than Casper (bluish green, Coquille, ~10°C). "
         "Blue dashed line: differential seafloor uplift (m) from bottom pressure recorders, "
         "measuring volcanic inflation and deflation. Absolute values are arbitrary; "
