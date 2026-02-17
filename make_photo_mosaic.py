@@ -14,7 +14,7 @@ from pathlib import Path
 # Poster styling
 plt.rcParams.update({
     'font.family': 'sans-serif',
-    'font.sans-serif': ['Helvetica', 'Arial'],
+    'font.sans-serif': ['Helvetica', 'Arial', 'DejaVu Sans'],
 })
 
 TITLE_SIZE = 24
@@ -24,112 +24,83 @@ DPI = 600
 BORDER_COLOR = 'steelblue'
 BORDER_WIDTH = 4
 
-# Source images — mapped to panels (a)-(d)
+# Source images — mapped to panels (a)-(b)
 IMG_DIR = Path(__file__).parent / 'images'
 PHOTOS = [
     IMG_DIR / 'sulis_20250822044456_J2-1730_miso.jpg',   # (a)
     IMG_DIR / 'HOBO_Recover.png',                         # (b)
-    IMG_DIR / 'MISO_001_Install.png',                     # (c)
-    IMG_DIR / 'sulis_20250821221931_J2-1729_miso.png',    # (d)
 ]
-LABELS = ['(a)', '(b)', '(c)', '(d)']
+LABELS = ['(a)', '(b)']
 
 OUTPUT = Path(__file__).parent / 'outputs' / 'figures' / 'poster' / 'fig0_photo_mosaic.png'
 
 CAPTION = (
-    "Axial Seamount is among the most intensively monitored "
-    "submarine volcanoes in the world. Long-term observations "
-    "since temperature time series and investigate mechanisms "
-    "driving these variations using a numerical model of "
-    "hydrothermal circulation. These images (a-d) show the "
-    "recovery of MISO temperature loggers at Axial Seamount."
+    "These photos show MISO/HOBO loggers deployed at hydrothermal vents "
+    "at Axial Seamount. (a) MISO logger 2023-004 deployed at the main "
+    "sulfide structure in the CASM vent field (b) MISO 2017-006 recovered "
+    "at El Guapo 2023."
 )
 
 
-def add_caption_justified(fig, text, y_pos, fontsize=CAPTION_SIZE,
-                          x_left=0.075, x_right=0.925):
-    """Add fully justified caption using renderer-based word spacing."""
+def add_caption_justified(fig, caption_ax, text, fontsize=CAPTION_SIZE):
+    """Add fully justified caption using renderer-based word spacing in axes coords."""
+    import textwrap
+
     renderer = fig.canvas.get_renderer()
-    max_width = (x_right - x_left) * fig.get_size_inches()[0] * fig.dpi
+    ax_bbox = caption_ax.get_window_extent(renderer)
 
-    words = text.split()
-    lines = []
-    current_line = []
-    current_width = 0
+    caption_width_in = ax_bbox.width / fig.dpi
+    char_width_in = fontsize / 72 * 0.50
+    wrap_chars = int(caption_width_in / char_width_in)
+    lines = textwrap.wrap(text, width=wrap_chars)
 
-    # Measure space width
-    t = fig.text(0, 0, ' ', fontsize=fontsize, visible=False)
-    bb = t.get_window_extent(renderer)
-    space_width = bb.width
-    t.remove()
+    # Measure line height
+    sample = caption_ax.text(0, 0, "Tg", fontsize=fontsize, family='sans-serif',
+                             transform=caption_ax.transAxes)
+    sample_bbox = sample.get_window_extent(renderer)
+    line_height = (sample_bbox.height * 1.35) / ax_bbox.height
+    sample.remove()
 
-    for word in words:
-        t = fig.text(0, 0, word, fontsize=fontsize, visible=False)
-        bb = t.get_window_extent(renderer)
-        word_width = bb.width
-        t.remove()
+    for i, line in enumerate(lines):
+        y = 1.0 - i * line_height
+        words = line.split()
 
-        test_width = current_width + word_width + (space_width if current_line else 0)
-        if test_width > max_width and current_line:
-            lines.append(current_line)
-            current_line = [word]
-            current_width = word_width
-        else:
-            current_line.append(word)
-            current_width = test_width
-
-    if current_line:
-        lines.append(current_line)
-
-    # Render each line
-    line_height = fontsize * 1.3 / (fig.get_size_inches()[1] * fig.dpi)
-    y = y_pos
-
-    for i, line_words in enumerate(lines):
-        is_last = (i == len(lines) - 1)
-
-        if is_last or len(line_words) == 1:
-            fig.text(x_left, y, ' '.join(line_words), fontsize=fontsize,
-                     va='top', ha='left', fontfamily='sans-serif')
-        else:
-            # Measure total word width
-            total_word_width = 0
+        if i < len(lines) - 1 and len(words) > 1:
             word_widths = []
-            for w in line_words:
-                t = fig.text(0, 0, w, fontsize=fontsize, visible=False)
-                bb = t.get_window_extent(renderer)
-                word_widths.append(bb.width)
-                total_word_width += bb.width
+            for word in words:
+                t = caption_ax.text(0, 0, word, fontsize=fontsize, family='sans-serif',
+                                    transform=caption_ax.transAxes)
+                wb = t.get_window_extent(renderer)
+                word_widths.append(wb.width / ax_bbox.width)
                 t.remove()
 
-            remaining = max_width - total_word_width
-            gap = remaining / (len(line_words) - 1) if len(line_words) > 1 else 0
-            gap_frac = gap / (fig.get_size_inches()[0] * fig.dpi)
+            total_word_width = sum(word_widths)
+            remaining = 1.0 - total_word_width
+            gap = remaining / (len(words) - 1)
 
-            x = x_left
-            for w in line_words:
-                t = fig.text(x, y, w, fontsize=fontsize, va='top', ha='left',
-                             fontfamily='sans-serif')
-                bb = t.get_window_extent(renderer)
-                x += bb.width / (fig.get_size_inches()[0] * fig.dpi) + gap_frac
-
-        y -= line_height
+            x = 0.0
+            for j, word in enumerate(words):
+                caption_ax.text(x, y, word, fontsize=fontsize, family='sans-serif',
+                                transform=caption_ax.transAxes, va='top', ha='left')
+                x += word_widths[j] + gap
+        else:
+            caption_ax.text(0.0, y, line, fontsize=fontsize, family='sans-serif',
+                            transform=caption_ax.transAxes, va='top', ha='left')
 
 
 def main():
-    fig = plt.figure(figsize=(7.5, 8.5))
+    fig = plt.figure(figsize=(8.625, 6.325))
 
-    # Grid: 2 rows of photos + caption space below
-    gs = gridspec.GridSpec(2, 2, hspace=0.02, wspace=0.02,
-                           left=0.02, right=0.98, top=0.94, bottom=0.22)
+    # Grid: 1 row of 2 photos + caption space below
+    gs = gridspec.GridSpec(1, 2, wspace=0.02,
+                           left=0.02, right=0.98, top=0.92, bottom=0.28)
 
     # Title
     fig.suptitle('Deployed MISO Loggers', fontsize=TITLE_SIZE,
                  fontweight='bold', y=0.975)
 
     for idx, (photo_path, label) in enumerate(zip(PHOTOS, LABELS)):
-        row, col = divmod(idx, 2)
-        ax = fig.add_subplot(gs[row, col])
+        ax = fig.add_subplot(gs[0, idx])
 
         img = mpimg.imread(str(photo_path))
         # Center-crop to ~4:3 aspect ratio for uniform panels
@@ -162,9 +133,12 @@ def main():
                 bbox=dict(boxstyle='round,pad=0.2', facecolor='black',
                           alpha=0.6, edgecolor='none'))
 
-    # Draw canvas so renderer is available for caption
+    # Caption area
+    caption_ax = fig.add_axes([0.04, 0.005, 0.92, 0.24])
+    caption_ax.axis('off')
+
     fig.canvas.draw()
-    add_caption_justified(fig, CAPTION, y_pos=0.19, x_left=0.04, x_right=0.96)
+    add_caption_justified(fig, caption_ax, CAPTION)
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUTPUT, dpi=DPI, bbox_inches='tight', facecolor='white')
