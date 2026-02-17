@@ -77,6 +77,14 @@ htmlcov/
 # mypy
 .mypy_cache/
 
+# Source images (ROV photos, model figures, collaborator references)
+images/
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+
 # Output figures and data (regenerate from scripts, don't track in git)
 outputs/figures/
 outputs/data/
