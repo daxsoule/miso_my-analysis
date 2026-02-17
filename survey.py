@@ -30,6 +30,7 @@ TMPSF_PATH = Path("/home/jovyan/repos/specKitScience/my-analysis_tmpsf/outputs/d
 OUTPUT_DIR = Path(__file__).parent / "outputs"
 DATA_DIR = OUTPUT_DIR / "data"
 FIG_DIR = OUTPUT_DIR / "figures" / "poster"
+EXPLORATORY_DIR = OUTPUT_DIR / "figures" / "exploratory"
 
 # --- QC parameters ---
 MISSING_FLAG = -888.88
@@ -1716,6 +1717,7 @@ def main():
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     FIG_DIR.mkdir(parents=True, exist_ok=True)
+    EXPLORATORY_DIR.mkdir(parents=True, exist_ok=True)
 
     # --- Current survey instruments (needed for survey, poster_bpr) ---
     records = None
@@ -1765,8 +1767,8 @@ def main():
         # Figures
         print("\nGenerating figures...")
         if target in (None, "all", "survey"):
-            fig_survey_overview(records, FIG_DIR / "survey_overview.png")
-            fig_hightemp_comparison(records, summary, FIG_DIR / "survey_hightemp_comparison.png")
+            fig_survey_overview(records, EXPLORATORY_DIR / "survey_overview.png")
+            fig_hightemp_comparison(records, summary, EXPLORATORY_DIR / "survey_hightemp_comparison.png")
         if target in (None, "all", "poster_bpr"):
             fig_poster_bpr(records, summary, bpr, FIG_DIR / "fig3_poster_temp_bpr_tmpsf.png", tmpsf=tmpsf)
 
@@ -1870,23 +1872,23 @@ def main():
                 print(f"  BPR range: {bpr_hist.index.min()} to {bpr_hist.index.max()}")
             fig_eruption_2015_vce(records_2015_eruption, FIG_DIR / "fig2_eruption_2015_vixen_casper_escargot.png",
                                   eruption_date=eruption_2015, bpr=bpr_hist)
-            fig_eruption_2015_vixen_casper(records_2015_eruption, FIG_DIR / "eruption_2015_vixen_casper.png",
+            fig_eruption_2015_vixen_casper(records_2015_eruption, EXPLORATORY_DIR / "eruption_2015_vixen_casper.png",
                                            eruption_date=eruption_2015, bpr=bpr_hist)
 
             # Individual vent plots
             for rec in records_2015_eruption:
                 vent = rec.attrs["vent"]
                 if vent == "Vixen":
-                    fig_single_vent_2015(rec, FIG_DIR / "eruption_2015_vixen.png",
+                    fig_single_vent_2015(rec, EXPLORATORY_DIR / "eruption_2015_vixen.png",
                                          eruption_date=eruption_2015, bpr=bpr_hist,
                                          t_end_override=pd.Timestamp("2015-08-10"))
                 elif vent == "Casper":
-                    fig_single_vent_2015(rec, FIG_DIR / "eruption_2015_casper.png",
+                    fig_single_vent_2015(rec, EXPLORATORY_DIR / "eruption_2015_casper.png",
                                          eruption_date=eruption_2015, bpr=bpr_hist)
                 elif vent == "Escargot":
-                    fig_single_vent_2015(rec, FIG_DIR / "eruption_2015_escargot.png",
+                    fig_single_vent_2015(rec, EXPLORATORY_DIR / "eruption_2015_escargot.png",
                                          eruption_date=eruption_2015, bpr=bpr_hist)
-            fig_escargot_multi(records_2015_eruption, FIG_DIR / "eruption_2015_escargot_multi.png",
+            fig_escargot_multi(records_2015_eruption, EXPLORATORY_DIR / "eruption_2015_escargot_multi.png",
                                eruption_date=eruption_2015, bpr=bpr_hist)
 
     print("\nDone!")
