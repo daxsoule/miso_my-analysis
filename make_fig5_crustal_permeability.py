@@ -68,12 +68,12 @@ def main():
              ha='center', va='top', family='sans-serif')
 
     # Image area
-    img_ax = fig.add_axes([0.025, 0.28, 0.95, 0.67])
+    img_ax = fig.add_axes([0.005, 0.28, 0.99, 0.67])
     img_ax.imshow(img)
     img_ax.axis('off')
 
     # Caption area
-    caption_ax = fig.add_axes([0.0125, 0.005, 0.975, 0.24])
+    caption_ax = fig.add_axes([0.166, 0.005, 0.671, 0.24])
     caption_ax.axis('off')
 
     renderer = fig.canvas.get_renderer()
@@ -89,7 +89,7 @@ def main():
     add_caption_justified(fig, caption_ax, renderer, ax_bbox, caption, CAPTION_FONTSIZE)
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUTPUT, dpi=DPI, bbox_inches='tight', facecolor='white')
+    fig.savefig(OUTPUT, dpi=DPI, bbox_inches='tight', pad_inches=0.0, facecolor='white')
     plt.close(fig)
     print(f"Saved: {OUTPUT}")
 
