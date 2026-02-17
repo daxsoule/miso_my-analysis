@@ -1041,9 +1041,10 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
 
     # Figure caption
     caption = (
-        "Individual vent temperatures spanning the April 24, 2015 Axial Seamount eruption. "
-        "$\\mathbf{(a)}$ Vixen (Coquille) shows co-eruptive perturbation and decline. "
-        "$\\mathbf{(b)}$ Casper (Coquille) shows ~6\u00b0C post-eruption drop. "
+        "Individual raw vent temperatures spanning the April 24, 2015 Axial Seamount eruption. "
+        "$\\mathbf{(a)}$ Vixen (Coquille) shows increased variability and co-eruptive "
+        "perturbation with ~2\u00b0C post-eruption decline. "
+        "$\\mathbf{(b)}$ Casper (Coquille) shows ~5\u00b0C post-eruption drop. "
         "$\\mathbf{(c)}$ Escargot (Int'l District, 2014\u20132019) shows decline to ~255\u00b0C "
         "with multi-year recovery. Blue dashed line: differential seafloor uplift (m) from "
         "bottom pressure recorders shows relative vertical displacement of caldera floor to top "
@@ -1691,9 +1692,10 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     # Figure caption - justified at 22pt
     caption = (
         "Daily mean high-temperature vent temps with seafloor uplift "
-        "(right axis). Uplift is differential seafloor displacement from bottom pressure "
-        "recorders, referenced to the April 2015 post-eruption minimum (0 m = maximum "
-        "deflation). Vertical line marks Chadwick cruise "
+        "(right axis). Blue dashed line: differential seafloor uplift (m) from "
+        "bottom pressure recorders shows relative vertical displacement of caldera floor "
+        "to top of caldera wall as a proxy for volcanic inflation and deflation. "
+        "Vertical line marks Chadwick cruise "
         "(June 2024). BPR shows ~1.6 m re-inflation since 2015."
     )
     add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
