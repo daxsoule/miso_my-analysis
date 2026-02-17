@@ -1046,8 +1046,8 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         "$\\mathbf{(b)}$ Casper (Coquille) shows ~6\u00b0C post-eruption drop. "
         "$\\mathbf{(c)}$ Escargot (Int'l District, 2014\u20132019) shows decline to ~255\u00b0C "
         "with multi-year recovery. Blue dashed line: differential seafloor uplift (m) from "
-        "bottom pressure recorders, measuring volcanic inflation and deflation. Absolute values "
-        "are arbitrary; the signal shows relative vertical displacement of the caldera floor."
+        "bottom pressure recorders shows relative vertical displacement of caldera floor to top "
+        "of caldera wall as a proxy for volcanic inflation and deflation."
     )
     add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
