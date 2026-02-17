@@ -35,7 +35,7 @@ LABELS = ['(a)', '(b)']
 OUTPUT = Path(__file__).parent / 'outputs' / 'figures' / 'poster' / 'fig0_photo_mosaic.png'
 
 CAPTION = (
-    "These photos show MISO/HOBO loggers deployed at hydrothermal vents "
+    "These photos show MISO temperature loggers deployed at hydrothermal vents "
     "at Axial Seamount. (a) MISO logger 2023-004 deployed at the main "
     "sulfide structure in the CASM vent field (b) MISO 2017-006 recovered "
     "at El Guapo 2023."
