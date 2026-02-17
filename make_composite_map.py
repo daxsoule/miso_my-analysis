@@ -104,7 +104,7 @@ FS_SCALE_BAR = 11     # Rubric: Feature labels >= 11pt
 FS_GRIDLINE = 11      # Rubric: Feature labels >= 11pt
 FS_NORTH_ARROW = 11   # Rubric: Feature labels >= 11pt
 FS_COLORBAR = 18      # Rubric: Axis/Caption >= 18pt
-FS_CAPTION = 18       # Rubric: Axis/Caption >= 18pt
+FS_CAPTION = 20       # Caption text
 FS_DATE_STAMP = 11    # Rubric: Feature labels >= 11pt
 
 
@@ -452,7 +452,7 @@ def render_site_overview(fig, ax):
 # ─── Panel (b): ASHES Detail ──────────────────────────────────────────────────
 
 def render_ashes_detail(fig, ax):
-    """Render the ASHES vent field detail panel. Returns visible dims (w, h) in meters."""
+    """Render the ASHES vent field detail panel. Returns (ashes_vis_dims, (z_min, z_max))."""
     print("Panel (b): Loading ASHES 1cm LASS bathymetry...")
     ds = xr.open_dataset(BATHY_ASHES_PATH)
     x = ds.coords['x'].values
@@ -556,16 +556,17 @@ def render_ashes_detail(fig, ax):
 
     # Free memory — keep vis dimensions for panel (c) matching
     ashes_vis_dims = (vis_w, vis_h)
+    ashes_depth_range = (z_min, z_max)
     del x, y, z, rgb, x_grid, y_grid, pts, x_utm_grid, y_utm_grid
     gc.collect()
     print("  Panel (b) done.")
-    return ashes_vis_dims
+    return ashes_vis_dims, ashes_depth_range
 
 
 # ─── Panel (c): Int'l District Detail ─────────────────────────────────────────
 
 def render_intl_district_detail(fig, ax, target_dims=None):
-    """Render the International District detail panel.
+    """Render the International District detail panel. Returns (z_min, z_max).
 
     If target_dims=(width, height) in meters is provided, the visible extent
     is center-cropped to those dimensions so both detail panels show the same
@@ -683,9 +684,11 @@ def render_intl_district_detail(fig, ax, target_dims=None):
     draw_neatline(ax, n_segments=12, linewidth=5)
 
     # Free memory
+    intl_depth_range = (z_min, z_max)
     del x, y, z, rgb, x_grid, y_grid, pts, x_utm_grid, y_utm_grid
     gc.collect()
     print("  Panel (c) done.")
+    return intl_depth_range
 
 
 # ─── Composite assembly ───────────────────────────────────────────────────────
@@ -700,52 +703,74 @@ def make_composite_map():
 
     utm9n = ccrs.UTM(zone=9, southern_hemisphere=False)
 
-    fig = plt.figure(figsize=(20, 14))
+    fig = plt.figure(figsize=(19.61, 13.61))
 
     # --- Axes positions (figure-fraction) ---
     # Titles outside panels.  (b) flush with (a) top, (c) flush with (a) bottom.
     # (c) title sits in the gap between (b) and (c).
     # Panel (a) enlarged and shifted right to tighten layout.
     #
-    #   Panel (a): left=0.08, bottom=0.18, top=0.90  (height 0.72, width 0.40)  — title above
-    #   Panel (b): left=0.44, bottom=0.59, top=0.90  (height 0.31, width 0.38)  — top flush w/ (a), title above
-    #   Panel (c): left=0.44, bottom=0.18, top=0.49  (height 0.31, width 0.38)  — bottom flush w/ (a), title in gap
+    #   Panel (a): left=0.06, width=0.34  — title above
+    #   Panel (b): left=0.49, width=0.32  — top flush w/ (a), title above
+    #   Panel (c): left=0.49, width=0.32  — bottom flush w/ (a), title in gap
+    #   Gap between columns: 0.40–0.49 holds (a)'s colorbar
     #   Gap between (b) and (c): 0.59 - 0.49 = 0.10 (holds (c) title)
 
-    ax1 = fig.add_axes([0.08, 0.18, 0.40, 0.72], projection=utm9n)   # (a) - wider, shifted right
-    ax2 = fig.add_axes([0.44, 0.59, 0.38, 0.31], projection=utm9n)   # (b)
-    ax3 = fig.add_axes([0.44, 0.18, 0.38, 0.31], projection=utm9n)   # (c)
+    ax1 = fig.add_axes([0.06, 0.18, 0.34, 0.72], projection=utm9n)   # (a)
+    ax2 = fig.add_axes([0.49, 0.59, 0.32, 0.31], projection=utm9n)   # (b)
+    ax3 = fig.add_axes([0.49, 0.18, 0.32, 0.31], projection=utm9n)   # (c)
 
     # Render panels sequentially (one dataset at a time for memory)
-    z_min, z_max = render_site_overview(fig, ax1)
-    ashes_dims = render_ashes_detail(fig, ax2)
-    render_intl_district_detail(fig, ax3, target_dims=ashes_dims)
+    z_min_a, z_max_a = render_site_overview(fig, ax1)
+    ashes_dims, (z_min_b, z_max_b) = render_ashes_detail(fig, ax2)
+    z_min_c, z_max_c = render_intl_district_detail(fig, ax3, target_dims=ashes_dims)
 
-    # --- Dynamic colorbar placement ---
-    # Draw to compute actual axes positions after Cartopy aspect-ratio adjustment
+    # --- Individual colorbars for each panel ---
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
+
+    cbar_width = 0.012
+    cbar_gap = 0.010
+
+    # Panel (a) colorbar — placed relative to its own tightbbox
+    bbox1 = ax1.get_tightbbox(renderer).transformed(fig.transFigure.inverted())
+    cax1 = fig.add_axes([bbox1.x1 + cbar_gap, bbox1.y0, cbar_width, bbox1.height])
+    sm1 = plt.cm.ScalarMappable(cmap=plt.cm.terrain,
+                                 norm=plt.Normalize(vmin=z_min_a, vmax=z_max_a))
+    sm1.set_array([])
+    cbar1 = fig.colorbar(sm1, cax=cax1)
+    cbar1.set_label('Depth (m)', fontsize=12)
+    cbar1.ax.tick_params(labelsize=9)
+
+    # Panels (b) and (c) colorbars — aligned to the same x position
     bbox2 = ax2.get_tightbbox(renderer).transformed(fig.transFigure.inverted())
     bbox3 = ax3.get_tightbbox(renderer).transformed(fig.transFigure.inverted())
-    right_edge = max(bbox2.x1, bbox3.x1)
+    bc_cbar_left = max(bbox2.x1, bbox3.x1) + cbar_gap
 
-    # Place colorbar with small breathing room (~2.5 mm)
-    cax_left = right_edge + 0.012
-    cax = fig.add_axes([cax_left, 0.18, 0.015, 0.72])
+    for ax, z_lo, z_hi in [(ax2, z_min_b, z_max_b),
+                            (ax3, z_min_c, z_max_c)]:
+        bbox = ax.get_tightbbox(renderer).transformed(fig.transFigure.inverted())
+        cax = fig.add_axes([bc_cbar_left, bbox.y0, cbar_width, bbox.height])
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.terrain,
+                                    norm=plt.Normalize(vmin=z_lo, vmax=z_hi))
+        sm.set_array([])
+        cbar = fig.colorbar(sm, cax=cax)
+        cbar.set_label('Depth (m)', fontsize=12)
+        cbar.ax.tick_params(labelsize=9)
 
-    sm = plt.cm.ScalarMappable(cmap=plt.cm.terrain,
-                                norm=plt.Normalize(vmin=z_min, vmax=z_max))
-    sm.set_array([])
-    cbar = fig.colorbar(sm, cax=cax)
-    cbar.set_label('Depth (m)', fontsize=FS_COLORBAR)
-    cbar.ax.tick_params(labelsize=11)
-
-    # --- Flowing caption (constrained to colorbar inner edge) ---
-    caption_width = cax_left - 0.08   # from left margin (0.08) to colorbar inner edge
-    caption_ax = fig.add_axes([0.08, 0.005, caption_width, 0.11])
+    # --- Flowing caption ---
+    # Find rightmost colorbar edge for caption width
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    # Get right edge of all colorbars (last 3 axes added are the colorbars)
+    cbar_right = max(a.get_tightbbox(renderer).transformed(fig.transFigure.inverted()).x1
+                     for a in fig.axes[-3:])
+    caption_left = 0.06
+    caption_width = cbar_right - caption_left - 0.04  # pull right edge in 2cm
+    caption_ax = fig.add_axes([caption_left, 0.005, caption_width, 0.11])
     caption_ax.axis('off')
 
-    caption_fontsize = 22
+    caption_fontsize = 20
     caption_text = (
         "Hydrothermal vent fields of Axial Seamount at multiple scales. "
         "(a) Caldera overview on 1 m AUV bathymetry (MBARI, 2025) with "

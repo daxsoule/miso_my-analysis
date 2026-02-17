@@ -47,7 +47,7 @@ POSTER_TICK_SIZE = 16       # tick labels
 POSTER_LEGEND_SIZE = 14
 POSTER_ANNOT_SIZE = 14      # annotations
 POSTER_PANEL_LABEL_SIZE = 22  # (a), (b) labels
-POSTER_CAPTION_SIZE = 18    # figure captions (smaller than title)
+POSTER_CAPTION_SIZE = 20    # figure captions
 POSTER_LINE_WIDTH = 2.0     # main data lines
 POSTER_ANNOT_LINE_WIDTH = 2.0  # vertical annotation lines
 POSTER_SPINE_WIDTH = 2.0    # plot bounding box
@@ -217,6 +217,7 @@ INSTRUMENTS_2015_ERUPTION = [
         "format": "mat_all",
         "time_start": "2014-09-01",
         "time_end": "2017-08-31",
+        "skip_spike_filter": True,
     },
     {
         "file": DATA_HISTORICAL / "casper" / "Casper-ALL-2006-2015.mat",
@@ -227,6 +228,7 @@ INSTRUMENTS_2015_ERUPTION = [
         "format": "mat_all",
         "time_start": "2014-09-01",
         "time_end": "2015-08-31",
+        "skip_spike_filter": True,
     },
     {
         "files": [
@@ -505,16 +507,17 @@ def load_mat_all_instrument(config):
         out["deployed"] = out["temperature"] > 50
 
     # MAD spike removal on deployed data
-    mad_thresh = config.get("mad_threshold", MAD_THRESHOLD)
     n_spikes = 0
-    deployed_mask = out["deployed"]
-    if deployed_mask.sum() > 10:
-        temp_cleaned, n_spikes = remove_spikes_mad(
-            out.loc[deployed_mask, "temperature"],
-            window_hours=MAD_WINDOW_HOURS,
-            threshold=mad_thresh,
-        )
-        out.loc[deployed_mask, "temperature"] = temp_cleaned
+    if not config.get("skip_spike_filter", False):
+        mad_thresh = config.get("mad_threshold", MAD_THRESHOLD)
+        deployed_mask = out["deployed"]
+        if deployed_mask.sum() > 10:
+            temp_cleaned, n_spikes = remove_spikes_mad(
+                out.loc[deployed_mask, "temperature"],
+                window_hours=MAD_WINDOW_HOURS,
+                threshold=mad_thresh,
+            )
+            out.loc[deployed_mask, "temperature"] = temp_cleaned
 
     # Remove duplicate timestamps before dropout filter
     out = out[~out.index.duplicated(keep="first")]
@@ -588,16 +591,17 @@ def load_ooi_trhph_instrument(config):
             out["deployed"] = out["temperature"] > 50
 
     # MAD spike removal on deployed data
-    mad_thresh = config.get("mad_threshold", MAD_THRESHOLD)
     n_spikes = 0
-    deployed_mask = out["deployed"]
-    if deployed_mask.sum() > 10:
-        temp_cleaned, n_spikes = remove_spikes_mad(
-            out.loc[deployed_mask, "temperature"],
-            window_hours=MAD_WINDOW_HOURS,
-            threshold=mad_thresh,
-        )
-        out.loc[deployed_mask, "temperature"] = temp_cleaned
+    if not config.get("skip_spike_filter", False):
+        mad_thresh = config.get("mad_threshold", MAD_THRESHOLD)
+        deployed_mask = out["deployed"]
+        if deployed_mask.sum() > 10:
+            temp_cleaned, n_spikes = remove_spikes_mad(
+                out.loc[deployed_mask, "temperature"],
+                window_hours=MAD_WINDOW_HOURS,
+                threshold=mad_thresh,
+            )
+            out.loc[deployed_mask, "temperature"] = temp_cleaned
 
     # Remove duplicate timestamps before dropout filter
     out = out[~out.index.duplicated(keep="first")]
@@ -768,13 +772,13 @@ def fig_historical_eruption(records, fig_path, eruption_date=None, bpr=None):
     # Figure caption - left-aligned, justified
     caption = (
         "Vent temperatures spanning the April 6, 2011 Axial Seamount eruption. "
-        "Diva (red, International District) showed a stronger response (~70°C drop) "
-        "than Casper (bluish green, Coquille, ~10°C). "
-        "Blue dashed line: differential seafloor uplift (m) from bottom pressure recorders, "
-        "measuring volcanic inflation and deflation. Absolute values are arbitrary; "
-        "the signal shows relative vertical displacement of the caldera floor."
+        "Diva (red, International District) showed a stronger response (~70\u00b0C drop) "
+        "than Casper (bluish green, Coquille, ~10\u00b0C). "
+        "Blue dashed line: differential seafloor uplift (m) from bottom pressure recorders "
+        "shows relative vertical displacement of caldera floor to top of caldera wall "
+        "as a proxy for volcanic inflation and deflation."
     )
-    add_caption_justified(fig, caption, caption_width=0.85, fontsize=22)
+    add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
@@ -966,6 +970,7 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         ax_a.tick_params(labelsize=POSTER_TICK_SIZE)
         set_spine_width(ax_a)
         ax_a.set_xlim(t_start_v, t_end_v)
+        ax_a.set_ylim(320, 332)
         ax_a.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
         ax_a.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
         plt.setp(ax_a.xaxis.get_majorticklabels(), rotation=0, ha="center")
@@ -993,6 +998,7 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         ax_b.tick_params(labelsize=POSTER_TICK_SIZE)
         set_spine_width(ax_b)
         ax_b.set_xlim(t_start_c, t_end_c)
+        ax_b.set_ylim(289, 302)
         ax_b.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
         ax_b.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
         plt.setp(ax_b.xaxis.get_majorticklabels(), rotation=0, ha="center")
@@ -1043,7 +1049,7 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         "bottom pressure recorders, measuring volcanic inflation and deflation. Absolute values "
         "are arbitrary; the signal shows relative vertical displacement of the caldera floor."
     )
-    add_caption_justified(fig, caption, caption_width=0.85, fontsize=22)
+    add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
@@ -1690,7 +1696,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         "deflation). Vertical line marks Chadwick cruise "
         "(June 2024). BPR shows ~1.6 m re-inflation since 2015."
     )
-    add_caption_justified(fig, caption, caption_width=0.85, fontsize=22)
+    add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)

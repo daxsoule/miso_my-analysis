@@ -18,7 +18,7 @@ plt.rcParams.update({
 })
 
 TITLE_SIZE = 24
-CAPTION_SIZE = 18
+CAPTION_SIZE = 20
 LABEL_SIZE = 20
 DPI = 600
 BORDER_COLOR = 'steelblue'
