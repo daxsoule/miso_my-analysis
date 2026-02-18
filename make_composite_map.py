@@ -104,7 +104,7 @@ FS_SCALE_BAR = 11     # Rubric: Feature labels >= 11pt
 FS_GRIDLINE = 11      # Rubric: Feature labels >= 11pt
 FS_NORTH_ARROW = 11   # Rubric: Feature labels >= 11pt
 FS_COLORBAR = 18      # Rubric: Axis/Caption >= 18pt
-FS_CAPTION = 20       # Caption text
+FS_CAPTION = 22       # Caption text
 FS_DATE_STAMP = 11    # Rubric: Feature labels >= 11pt
 
 
@@ -703,7 +703,7 @@ def make_composite_map():
 
     utm9n = ccrs.UTM(zone=9, southern_hemisphere=False)
 
-    fig = plt.figure(figsize=(19.61, 13.61))
+    fig = plt.figure(figsize=(14.91, 10.35))
 
     # --- Axes positions (figure-fraction) ---
     # Titles outside panels.  (b) flush with (a) top, (c) flush with (a) bottom.
@@ -765,12 +765,13 @@ def make_composite_map():
     # Get right edge of all colorbars (last 3 axes added are the colorbars)
     cbar_right = max(a.get_tightbbox(renderer).transformed(fig.transFigure.inverted()).x1
                      for a in fig.axes[-3:])
-    caption_left = 0.06
-    caption_width = cbar_right - caption_left - 0.04  # pull right edge in 2cm
+    inset_2cm = (2.0 / 2.54) / fig.get_size_inches()[0]  # 2cm in figure fraction
+    caption_left = inset_2cm
+    caption_width = cbar_right - 2 * inset_2cm  # 2cm inset on each side
     caption_ax = fig.add_axes([caption_left, 0.005, caption_width, 0.11])
     caption_ax.axis('off')
 
-    caption_fontsize = 20
+    caption_fontsize = 22
     caption_text = (
         "Hydrothermal vent fields of Axial Seamount at multiple scales. "
         "(a) Caldera overview on 1 m AUV bathymetry (MBARI, 2025) with "

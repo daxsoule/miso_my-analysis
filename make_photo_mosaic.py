@@ -18,7 +18,7 @@ plt.rcParams.update({
 })
 
 TITLE_SIZE = 24
-CAPTION_SIZE = 20
+CAPTION_SIZE = 22
 LABEL_SIZE = 20
 DPI = 600
 BORDER_COLOR = 'steelblue'
@@ -35,10 +35,15 @@ LABELS = ['(a)', '(b)']
 OUTPUT = Path(__file__).parent / 'outputs' / 'figures' / 'poster' / 'fig0_photo_mosaic.png'
 
 CAPTION = (
-    "These photos show MISO temperature loggers deployed at hydrothermal vents "
-    "at Axial Seamount. (a) MISO logger 2023-004 deployed at the main "
-    "sulfide structure in the CASM vent field (b) MISO 2017-006 recovered "
-    "at El Guapo 2023."
+    "These photos show WHOI-MISO High-Temperature Vent Fluid Loggers deployed "
+    "at hydrothermal vents at Axial Seamount. (a) MISO logger 2023-004 deployed "
+    "at the main sulfide structure in the CASM vent field (b) MISO 2017-006 "
+    "recovered at El Guapo 2023. MISO loggers combine a J-Type thermocouple "
+    "with range 0\u2013400\u00b0C and relative resolution of ~0.03\u00b0C with the autonomous "
+    "logging capability. Sampling rate is usually set to 10 minutes. When "
+    "deploying a MISO logger, the tip of its measurement probe will be inserted "
+    "into the orifice of a vent while the logger\u2019s housing will be suspended "
+    "outside the vent in ambient seawater."
 )
 
 
@@ -50,7 +55,7 @@ def add_caption_justified(fig, caption_ax, text, fontsize=CAPTION_SIZE):
     ax_bbox = caption_ax.get_window_extent(renderer)
 
     caption_width_in = ax_bbox.width / fig.dpi
-    char_width_in = fontsize / 72 * 0.50
+    char_width_in = fontsize / 72 * 0.55
     wrap_chars = int(caption_width_in / char_width_in)
     lines = textwrap.wrap(text, width=wrap_chars)
 
@@ -133,8 +138,11 @@ def main():
                 bbox=dict(boxstyle='round,pad=0.2', facecolor='black',
                           alpha=0.6, edgecolor='none'))
 
-    # Caption area
-    caption_ax = fig.add_axes([0.04, 0.005, 0.92, 0.24])
+    # Caption area — match Fig 1 caption pixel width (8.5 inches)
+    fig_w = fig.get_size_inches()[0]
+    caption_w = 8.5 / fig_w  # same width as Fig 1 caption
+    caption_left = (1.0 - caption_w) / 2  # center it
+    caption_ax = fig.add_axes([caption_left, 0.005, caption_w, 0.24])
     caption_ax.axis('off')
 
     fig.canvas.draw()

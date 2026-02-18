@@ -48,7 +48,7 @@ POSTER_TICK_SIZE = 16       # tick labels
 POSTER_LEGEND_SIZE = 14
 POSTER_ANNOT_SIZE = 14      # annotations
 POSTER_PANEL_LABEL_SIZE = 22  # (a), (b) labels
-POSTER_CAPTION_SIZE = 20    # figure captions
+POSTER_CAPTION_SIZE = 22    # figure captions
 POSTER_LINE_WIDTH = 2.0     # main data lines
 POSTER_ANNOT_LINE_WIDTH = 2.0  # vertical annotation lines
 POSTER_SPINE_WIDTH = 2.0    # plot bounding box
@@ -634,7 +634,7 @@ def set_spine_width(ax, width=POSTER_SPINE_WIDTH):
         spine.set_linewidth(width)
 
 
-def add_caption_justified(fig, caption_text, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE):
+def add_caption_justified(fig, caption_text, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE, caption_left=0.05):
     """Add a left-aligned, justified caption below the figure.
 
     Parameters
@@ -650,12 +650,12 @@ def add_caption_justified(fig, caption_text, caption_width=0.85, fontsize=POSTER
     """
     # Calculate approximate wrap width for line breaking
     caption_width_in = caption_width * fig.get_size_inches()[0]
-    char_width_in = fontsize / 72 * 0.50  # approximate char width for sans-serif
+    char_width_in = fontsize / 72 * 0.55  # approximate char width for sans-serif
     wrap_chars = int(caption_width_in / char_width_in)
     lines = textwrap.wrap(caption_text, width=wrap_chars)
 
     # Create caption axes at bottom
-    caption_ax = fig.add_axes([0.05, 0.02, caption_width, 0.15])
+    caption_ax = fig.add_axes([caption_left, 0.02, caption_width, 0.15])
     caption_ax.axis('off')
 
     # Use renderer to measure actual text widths for true justification
@@ -1690,7 +1690,7 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     ax1.grid(True, alpha=0.3)
     set_spine_width(ax1)
 
-    # Figure caption - justified at 22pt
+    # Figure caption - justified at 22pt, shifted 1cm right to align with Fig 2 on poster
     caption = (
         "Daily mean high-temperature vent temps with seafloor uplift "
         "(right axis). Blue dashed line: differential seafloor uplift (m) from "
@@ -1699,7 +1699,9 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
         "Vertical line marks Chadwick cruise "
         "(June 2024). BPR shows ~1.6 m re-inflation since 2015."
     )
-    add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
+    offset_1cm = (1.0 / 2.54) / fig.get_size_inches()[0]
+    add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE,
+                          caption_left=0.05 + offset_1cm)
 
     fig.savefig(fig_path, dpi=POSTER_DPI, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)

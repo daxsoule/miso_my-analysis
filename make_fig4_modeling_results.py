@@ -14,13 +14,13 @@ plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
 IMAGE_PATH = Path("images/models/model_ini_permeability_vel_vec_label.tif")
 OUTPUT = Path("outputs/figures/poster/fig4_modeling_results.png")
 DPI = 600
-CAPTION_FONTSIZE = 20
+CAPTION_FONTSIZE = 22
 
 
 def add_caption_justified(fig, ax, renderer, ax_bbox, text, caption_fontsize):
     """Render justified caption text in the given axes."""
     caption_width_in = ax_bbox.width / fig.dpi
-    char_width_in = caption_fontsize / 72 * 0.50
+    char_width_in = caption_fontsize / 72 * 0.55
     wrap_chars = int(caption_width_in / char_width_in)
     lines = textwrap.wrap(text, width=wrap_chars)
 
@@ -61,19 +61,22 @@ def add_caption_justified(fig, ax, renderer, ax_bbox, text, caption_fontsize):
 def main():
     img = mpimg.imread(IMAGE_PATH)
 
-    fig = plt.figure(figsize=(9.4567, 7.5), dpi=DPI)
+    fig = plt.figure(figsize=(8.94, 12.08), dpi=DPI)
 
     # Title
     fig.text(0.5, 0.97, "Modeling Results", fontsize=24, fontweight='bold',
              ha='center', va='top', family='sans-serif')
 
-    # Image area
-    img_ax = fig.add_axes([0.005, 0.28, 0.99, 0.67])
-    img_ax.imshow(img)
+    # Image area — aspect='auto' to fill axes width
+    img_ax = fig.add_axes([0.005, 0.42, 0.99, 0.53])
+    img_ax.imshow(img, aspect='auto')
     img_ax.axis('off')
 
-    # Caption area
-    caption_ax = fig.add_axes([0.166, 0.005, 0.671, 0.24])
+    # Caption area — fixed width matching Fig 5 (6.94 inches)
+    fig_w = fig.get_size_inches()[0]
+    caption_w_in = 6.94  # same pixel width as Fig 5 caption
+    inset_frac = (fig_w - caption_w_in) / 2 / fig_w
+    caption_ax = fig.add_axes([inset_frac, 0.01, caption_w_in / fig_w, 0.40])
     caption_ax.axis('off')
 
     renderer = fig.canvas.get_renderer()
@@ -93,7 +96,7 @@ def main():
     add_caption_justified(fig, caption_ax, renderer, ax_bbox, caption, CAPTION_FONTSIZE)
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUTPUT, dpi=DPI, bbox_inches='tight', pad_inches=0.0, facecolor='white')
+    fig.savefig(OUTPUT, dpi=DPI, pad_inches=0.0, facecolor='white')
     plt.close(fig)
     print(f"Saved: {OUTPUT}")
 

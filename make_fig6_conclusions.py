@@ -31,7 +31,7 @@ BULLETS = [
 ]
 
 
-def add_justified_bullet(fig, ax, renderer, ax_bbox, text, y_start, fontsize=20,
+def add_justified_bullet(fig, ax, renderer, ax_bbox, text, y_start, fontsize=22,
                          bullet_char="\u2022"):
     """Render a single bold, justified bullet paragraph. Returns y after last line."""
     # Measure line height
@@ -108,7 +108,11 @@ def main():
              ha='center', va='top', family='sans-serif')
 
     # Text area — wide margins for readability
-    text_ax = fig.add_axes([0.04, 0.05, 0.92, 0.85])
+    # Text width matches Fig 5 caption (6.94 inches)
+    fig_w = fig.get_size_inches()[0]
+    text_w = 6.94 / fig_w
+    text_left = (1.0 - text_w) / 2
+    text_ax = fig.add_axes([text_left, 0.05, text_w, 0.85])
     text_ax.axis('off')
 
     renderer = fig.canvas.get_renderer()
@@ -117,7 +121,7 @@ def main():
     y = 1.0
     for bullet_text in BULLETS:
         y = add_justified_bullet(fig, text_ax, renderer, ax_bbox, bullet_text, y,
-                                 fontsize=20)
+                                 fontsize=22)
         y -= 0.03  # gap between bullets
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
