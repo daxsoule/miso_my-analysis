@@ -37,8 +37,8 @@ OUTPUT = Path(__file__).parent / 'outputs' / 'figures' / 'poster' / 'fig0_photo_
 CAPTION = (
     "These photos show WHOI-MISO High-Temperature Vent Fluid Loggers deployed "
     "at hydrothermal vents at Axial Seamount. (a) MISO logger 2023-004 deployed "
-    "at the main sulfide structure in the CASM vent field (b) MISO 2017-006 "
-    "recovered at El Guapo 2023. MISO loggers combine a J-Type thermocouple "
+    "at the main sulfide structure in the CASM vent field in 2025. (b) MISO 2017-006 "
+    "recovered at El Guapo during the 2024 OOI cruise. MISO loggers combine a J-Type thermocouple "
     "with range 0\u2013400\u00b0C and relative resolution of ~0.03\u00b0C with the autonomous "
     "logging capability. Sampling rate is usually set to 10 minutes. When "
     "deploying a MISO logger, the tip of its measurement probe will be inserted "

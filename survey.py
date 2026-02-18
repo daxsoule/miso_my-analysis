@@ -1048,8 +1048,9 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         "$\\mathbf{(b)}$ Casper (Coquille) shows ~5\u00b0C post-eruption drop. "
         "$\\mathbf{(c)}$ Escargot (Int'l District, 2014\u20132019) shows decline to ~255\u00b0C "
         "with multi-year recovery. Blue dashed line: differential seafloor uplift (m) from "
-        "bottom pressure recorders shows relative vertical displacement of caldera floor to top "
-        "of caldera wall as a proxy for volcanic inflation and deflation."
+        "bottom pressure recorders shows relative vertical displacement of central caldera "
+        "center BPR (MJ03F) to eastern caldera BPR (MJ03E) as a proxy for volcanic inflation "
+        "and deflation."
     )
     add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
@@ -1694,8 +1695,9 @@ def fig_poster_bpr(records, summary, bpr, fig_path, tmpsf=None):
     caption = (
         "Daily mean high-temperature vent temps with seafloor uplift "
         "(right axis). Blue dashed line: differential seafloor uplift (m) from "
-        "bottom pressure recorders shows relative vertical displacement of caldera floor "
-        "to top of caldera wall as a proxy for volcanic inflation and deflation. "
+        "bottom pressure recorders shows relative vertical displacement of central caldera "
+        "center BPR (MJ03F) to eastern caldera BPR (MJ03E) as a proxy for volcanic inflation "
+        "and deflation. "
         "Vertical line marks Chadwick cruise "
         "(June 2024). BPR shows ~1.6 m re-inflation since 2015."
     )
