@@ -776,8 +776,8 @@ def make_composite_map():
         "Hydrothermal vent fields of Axial Seamount at multiple scales. "
         "(a) Caldera overview on 1 m AUV bathymetry (MBARI, 2025) with "
         "BPR stations used to calculate differential uplift (red triangles), vent fields, and 2011 (white) / "
-        "2015 (orange) lava flows. (b) ASHES and (c) International District "
-        "at 1 cm LASS lidar resolution (MBARI, 2025). Yellow diamonds mark "
+        "2015 (orange) lava flows (Caress et al., 2024). (b) ASHES and (c) International District "
+        "at 1 cm LASS lidar resolution (Paduan et al., 2022). Yellow diamonds mark "
         "individual vents from the 2024\u20132025 MISO deployment."
     )
 
