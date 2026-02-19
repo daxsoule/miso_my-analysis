@@ -777,7 +777,7 @@ def fig_historical_eruption(records, fig_path, eruption_date=None, bpr=None):
         "than Casper (bluish green, Coquille, ~10\u00b0C). "
         "Blue dashed line: differential seafloor uplift (m) from bottom pressure recorders "
         "shows relative vertical displacement of caldera floor to top of caldera wall "
-        "as a proxy for volcanic inflation and deflation."
+        "as a proxy for volcanic inflation and deflation (Chadwick et al., 2022)."
     )
     add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
