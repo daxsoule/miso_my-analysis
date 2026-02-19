@@ -1050,7 +1050,7 @@ def fig_eruption_2015_vce(records, fig_path, eruption_date=None, bpr=None):
         "with multi-year recovery. Blue dashed line: differential seafloor uplift (m) from "
         "bottom pressure recorders shows relative vertical displacement of central caldera "
         "center BPR (MJ03F) to eastern caldera BPR (MJ03E) as a proxy for volcanic inflation "
-        "and deflation."
+        "and deflation (Chadwick et al., 2022)."
     )
     add_caption_justified(fig, caption, caption_width=0.85, fontsize=POSTER_CAPTION_SIZE)
 
